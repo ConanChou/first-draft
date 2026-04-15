@@ -1,0 +1,21 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getAllTags } from "../../lib/content";
+
+const tags = getAllTags();
+const sorted = [...tags.entries()].sort((a, b) => b[1].length - a[1].length);
+---
+
+<Base title="Tags">
+  <h1 style="font-size:1.1em; font-weight:400; margin-bottom:1.5rem;">Tags</h1>
+  <ul class="entry-list">
+    {
+      sorted.map(([tag, entries]) => (
+        <li>
+          <a href={`/tags/${tag}/`} class="entry-title">#{tag}</a>
+          <span class="entry-date">{entries.length}</span>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

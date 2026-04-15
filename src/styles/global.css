@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+/* ── Design tokens ──────────────────────────────────────── */
+:root {
+  --color-text:       #111111;
+  --color-bg:         #fefefe;
+  --color-muted:      #666666;
+  --color-border:     #e0e0e0;
+  --color-accent:     #0066cc;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica,
+    Roboto, Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft Yahei", "Microsoft Jhenghei", sans-serif;
+
+  --content-width:    700px;
+  --font-size-base:   1.1em;
+  --line-height-base: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text:   #c8c8c8;
+    --color-bg:     #323232;
+    --color-muted:  #888888;
+    --color-border: #484848;
+    --color-accent: #5599ee;
+  }
+}
+
+/* ── Base ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-weight: 300;
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  padding: 0 1rem;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.site-wrap {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.site-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 2rem;
+}
+
+.site-title {
+  font-size: 1rem;
+  font-weight: 400;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.lang-switch {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85em;
+}
+
+.lang-switch button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.lang-switch button.active {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.site-footer {
+  margin-top: 4rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8em;
+  color: var(--color-muted);
+}
+
+/* ── Entry list ─────────────────────────────────────────── */
+.entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.entry-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.95em;
+}
+
+.entry-num {
+  color: var(--color-muted);
+  font-size: 0.8em;
+  min-width: 3ch;
+  flex-shrink: 0;
+}
+
+.entry-title {
+  flex: 1;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.entry-title:hover { text-decoration: underline; }
+
+.entry-date {
+  color: var(--color-muted);
+  font-size: 0.8em;
+  flex-shrink: 0;
+}
+
+/* ── Post ───────────────────────────────────────────────── */
+.post-header {
+  margin-bottom: 2rem;
+}
+
+.post-title {
+  font-size: 1.4em;
+  font-weight: 400;
+  margin: 0 0 0.4rem;
+}
+
+.post-meta {
+  font-size: 0.85em;
+  color: var(--color-muted);
+}
+
+.post-body {
+  line-height: 1.7;
+}
+
+.post-body h1, .post-body h2, .post-body h3 {
+  font-weight: 400;
+  margin-top: 2em;
+}
+
+.post-body a {
+  color: var(--color-accent);
+}
+
+.post-body pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: var(--color-border);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.post-body code {
+  font-size: 0.9em;
+}
+
+.post-tags {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.85em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.post-tags a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.post-tags a:hover { color: var(--color-text); }
+
+.translation-links {
+  margin-top: 0.4rem;
+  font-size: 0.82em;
+  color: var(--color-muted);
+}
+
+.translation-links a {
+  color: var(--color-accent);
+}

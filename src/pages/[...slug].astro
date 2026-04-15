@@ -1,0 +1,61 @@
+---
+import { getStaticPaths as _getStaticPaths, type RouteEntry } from "../lib/routes";
+import type { GetStaticPathsResult } from "astro";
+import Base from "../layouts/Base.astro";
+
+export async function getStaticPaths(): Promise<GetStaticPathsResult> {
+  return _getStaticPaths();
+}
+
+interface Props {
+  entry: RouteEntry;
+  siteUrl: string;
+}
+
+const { entry, siteUrl } = Astro.props as Props;
+const canonicalUrl = `${siteUrl}/${entry.slug}/`;
+
+function fmtDate(iso: string) {
+  return iso.slice(0, 10);
+}
+---
+
+<Base
+  title={entry.title}
+  lang={entry.lang}
+  canonicalUrl={canonicalUrl}
+>
+  <article class="note" data-id={entry.id}>
+    <header class="post-header">
+      <h1 class="post-title">{entry.title}</h1>
+      <p class="post-meta">
+        <time datetime={entry.date}>{fmtDate(entry.date)}</time>
+        {" · "}
+        {entry.lang}
+      </p>
+      {
+        entry.translations.length > 0 && (
+          <p class="translation-links">
+            {entry.translations.map((lang) => (
+              <span>
+                Read in <a href={`/${entry.id}`}>{lang}</a>
+              </span>
+            ))}
+          </p>
+        )
+      }
+    </header>
+
+    <div class="post-body" set:html={entry.renderedHtml} />
+
+    {
+      entry.tags.length > 0 && (
+        <div class="post-tags">
+          {entry.tags.map((tag) => (
+            <a href={`/tags/${tag}/`}>#{tag}</a>
+          ))}
+        </div>
+      )
+    }
+  </article>
+</Base>

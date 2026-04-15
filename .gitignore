@@ -1,0 +1,17 @@
+# deps
+node_modules/
+
+# build
+dist/
+
+# content cache (populated by `fetch` script)
+src/content/
+
+# env
+.env
+
+# astro
+.astro/
+
+# OS
+.DS_Store

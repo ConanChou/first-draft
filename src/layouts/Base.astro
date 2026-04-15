@@ -1,0 +1,94 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  canonicalUrl?: string;
+  lang?: string;
+  ogImage?: string;
+}
+
+const {
+  title,
+  description,
+  canonicalUrl = Astro.url.href,
+  lang = "zh",
+  ogImage,
+} = Astro.props;
+
+const siteTitle = "conan.one";
+const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonicalUrl} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <!-- RSS -->
+    <link rel="alternate" type="application/rss+xml" title="conan.one (zh)" href="/feed.zh.xml" />
+    <link rel="alternate" type="application/rss+xml" title="conan.one (en)" href="/feed.en.xml" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div class="site-wrap">
+      <header class="site-header">
+        <a href="/" class="site-title">conan.one</a>
+        <nav class="lang-switch" id="lang-switch" aria-label="Language">
+          <button data-lang="zh" class="active">中</button>
+          <button data-lang="en">En</button>
+        </nav>
+      </header>
+
+      <main>
+        <slot />
+      </main>
+
+      <footer class="site-footer">
+        <span>© {new Date().getFullYear()} Conan Chou</span>
+      </footer>
+    </div>
+
+    <script>
+      // Language switch: persist preference in localStorage, filter entry list
+      const STORAGE_KEY = "preferred-lang";
+      const switchEl = document.getElementById("lang-switch");
+
+      function applyLang(lang: string) {
+        // Update button states
+        switchEl?.querySelectorAll("button").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.lang === lang);
+        });
+        // Show/hide entries
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const elLang = (el as HTMLElement).dataset.lang;
+          (el as HTMLElement).style.display =
+            elLang === lang || !elLang ? "" : "none";
+        });
+        localStorage.setItem(STORAGE_KEY, lang);
+      }
+
+      switchEl?.addEventListener("click", (e) => {
+        const btn = (e.target as Element).closest("button[data-lang]") as HTMLButtonElement | null;
+        if (btn?.dataset.lang) applyLang(btn.dataset.lang);
+      });
+
+      // Init: restore preference or detect from browser
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const detected = navigator.language.startsWith("zh") ? "zh" : "en";
+      applyLang(saved ?? detected);
+    </script>
+  </body>
+</html>

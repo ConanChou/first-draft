@@ -1,0 +1,38 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getAllTags } from "../../lib/content";
+
+export async function getStaticPaths() {
+  const tags = getAllTags();
+  return [...tags.entries()].map(([tag, entries]) => ({
+    params: { tag },
+    props: {
+      tag,
+      entries: entries.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    },
+  }));
+}
+
+const { tag, entries } = Astro.props;
+
+function fmtDate(iso: string) {
+  return iso.slice(0, 10);
+}
+---
+
+<Base title={`#${tag}`}>
+  <h1 style="font-size:1.1em; font-weight:400; margin-bottom:1.5rem;">#{tag}</h1>
+  <ul class="entry-list">
+    {
+      entries.map((e: { slug: string; title: string; date: string; id: string; lang: string }) => (
+        <li data-lang={e.lang}>
+          <span class="entry-num">{e.id}</span>
+          <a href={`/${e.slug}/`} class="entry-title">{e.title}</a>
+          <span class="entry-date">{fmtDate(e.date)}</span>
+        </li>
+      ))
+    }
+  </ul>
+</Base>
