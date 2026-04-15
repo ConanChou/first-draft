@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+/**
+ * fetch
+ *
+ * Syncs published content from the iA Writer library into src/content/.
+ *
+ * Excluded from sync:
+ *   - bare NNNN.md files (drafts by filename convention)
+ *   - files with front-matter draft:true
+ *   - hidden files/folders (. or _ prefix)
+ *
+ * Files removed from the library are also removed from src/content/.
+ */
+
+import {
+  readFileSync, writeFileSync, copyFileSync,
+  mkdirSync, rmSync, statSync, existsSync,
+} from "node:fs";
+import { join, dirname, basename, relative } from "node:path";
+import {
+  ROOT, loadEnv, parseFrontMatter, parseFilename, walkMd,
+} from "./_lib.mjs";
+
+const env = loadEnv();
+const IA_PATH     = env.IA_WRITER_PATH;
+const CONTENT_DIR = join(ROOT, "src", "content");
+
+if (!IA_PATH) {
+  console.error("Error: IA_WRITER_PATH not set in .env");
+  process.exit(1);
+}
+if (!existsSync(IA_PATH)) {
+  console.error(`Error: IA_WRITER_PATH not found: ${IA_PATH}`);
+  process.exit(1);
+}
+
+// Build map: relative-path → source-absolute-path for all publishable files
+const toCopy = new Map();
+for (const src of walkMd(IA_PATH)) {
+  const p = parseFilename(basename(src));
+  if (!p) continue;                  // not a numbered file
+  if (p.slug === null) continue;     // bare NNNN.md = draft
+  const { fm } = parseFrontMatter(readFileSync(src, "utf-8"));
+  if (fm.draft === true) continue;   // explicitly drafted
+  toCopy.set(relative(IA_PATH, src), src);
+}
+
+mkdirSync(CONTENT_DIR, { recursive: true });
+
+// Remove stale files from content/
+let removed = 0;
+for (const existing of walkMd(CONTENT_DIR)) {
+  const rel = relative(CONTENT_DIR, existing);
+  if (!toCopy.has(rel)) {
+    rmSync(existing);
+    console.log(`  removed:  ${rel}`);
+    removed++;
+  }
+}
+
+// Copy new / updated files
+let copied = 0, skipped = 0;
+for (const [rel, src] of toCopy) {
+  const dest = join(CONTENT_DIR, rel);
+  mkdirSync(dirname(dest), { recursive: true });
+  const srcMtime  = statSync(src).mtimeMs;
+  const destMtime = existsSync(dest) ? statSync(dest).mtimeMs : 0;
+  if (srcMtime > destMtime) {
+    copyFileSync(src, dest);
+    console.log(`  ${destMtime === 0 ? "copied  " : "updated "}  ${rel}`);
+    copied++;
+  } else {
+    skipped++;
+  }
+}
+
+console.log(`\nfetch: ${toCopy.size} published, ${copied} copied, ${removed} removed, ${skipped} unchanged`);

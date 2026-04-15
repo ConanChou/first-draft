@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+/**
+ * draft [folder]
+ *
+ * Allocates the next numeric ID, creates NNNN.md in the iA Writer library,
+ * and opens it in iA Writer.
+ *
+ * folder — path relative to IA_WRITER_PATH (default: library root)
+ */
+
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { loadEnv, scanMaxId } from "./_lib.mjs";
+
+const env = loadEnv();
+const IA_PATH = env.IA_WRITER_PATH;
+const DEFAULT_LANG = env.DEFAULT_LANG ?? "zh";
+
+if (!IA_PATH) {
+  console.error("Error: IA_WRITER_PATH not set in .env");
+  process.exit(1);
+}
+if (!existsSync(IA_PATH)) {
+  console.error(`Error: IA_WRITER_PATH not found: ${IA_PATH}`);
+  process.exit(1);
+}
+
+const folder = process.argv[2] ?? "";
+const targetDir = folder ? join(IA_PATH, folder) : IA_PATH;
+
+mkdirSync(targetDir, { recursive: true });
+
+const maxId = scanMaxId(IA_PATH);
+const nextId = String(maxId + 1).padStart(4, "0");
+const filename = `${nextId}.md`;
+const filePath = join(targetDir, filename);
+
+if (existsSync(filePath)) {
+  console.error(`Error: ${filePath} already exists`);
+  process.exit(1);
+}
+
+writeFileSync(filePath, `---\ndraft: true\nlang: "${DEFAULT_LANG}"\n---\n\n# \n`);
+console.log(filePath);
+
+// Open in iA Writer (macOS only — no-op on other platforms)
+try {
+  execFileSync("open", ["-a", "iA Writer", filePath], { stdio: "ignore" });
+} catch {
+  // Not macOS or iA Writer not installed — not fatal
+}

@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+/**
+ * publish <id-or-path> [--lang <code>] [--tz <zone|local>]
+ *         [--title <name>] [--latest-draft]
+ *
+ * Publishes a draft:
+ *   1. Finds the file (by ID, path, --title match, or --latest-draft)
+ *   2. Extracts title from first # heading if missing from front matter
+ *   3. Renames file: NNNN[.lang].md → NNNN-slug[.lang].md
+ *   4. Updates front matter: draft:false, title, slug, date, lang
+ *   5. Chains: fetch → build → deploy
+ *
+ * --lang          disambiguate when ID has multiple lang versions
+ * --tz            override timezone for date stamp (IANA name or "local")
+ * --title         find draft by matching its first # heading (Micropub flow)
+ * --latest-draft  publish the most recently modified draft (Micropub fallback)
+ */
+
+import { readFileSync, writeFileSync, renameSync, statSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
+import { execFileSync } from "node:child_process";
+import {
+  ROOT, loadEnv, parseFrontMatter, stringifyFrontMatter,
+  slugify, formatDateISO, findById, findDrafts, findLatestDraft,
+  parseFilename, firstHeading,
+} from "./_lib.mjs";
+
+// ── Parse CLI args ────────────────────────────────────────────────
+const args = process.argv.slice(2);
+let target = null;
+let lang = null;
+let tz = null;
+let titleFlag = null;
+let latestDraft = false;
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--lang")          { lang        = args[++i]; continue; }
+  if (args[i] === "--tz")            { tz          = args[++i]; continue; }
+  if (args[i] === "--title")         { titleFlag   = args[++i]; continue; }
+  if (args[i] === "--latest-draft")  { latestDraft = true;      continue; }
+  if (!target) target = args[i];
+}
+
+const env = loadEnv();
+const IA_PATH        = env.IA_WRITER_PATH;
+const HOME_TZ        = env.HOME_TZ        ?? "America/New_York";
+const DEFAULT_LANG   = env.DEFAULT_LANG   ?? "zh";
+
+if (!IA_PATH) {
+  console.error("Error: IA_WRITER_PATH not set in .env");
+  process.exit(1);
+}
+
+// ── Locate file ───────────────────────────────────────────────────
+let filePath = null;
+
+if (titleFlag) {
+  const matches = findDrafts(IA_PATH, titleFlag);
+  if (matches.length === 0) {
+    console.error(`Error: no draft with heading "${titleFlag}" found`);
+    process.exit(1);
+  }
+  if (matches.length > 1) {
+    console.error(`Error: ambiguous — multiple drafts match "${titleFlag}":`);
+    for (const f of matches) console.error(`  ${f}`);
+    process.exit(1);
+  }
+  filePath = matches[0];
+
+} else if (latestDraft) {
+  filePath = findLatestDraft(IA_PATH);
+  if (!filePath) {
+    console.error("Error: no drafts found");
+    process.exit(1);
+  }
+
+} else if (target) {
+  if (target.includes("/") || target.endsWith(".md")) {
+    filePath = target;
+  } else {
+    const matches = findById(IA_PATH, target, lang);
+    if (matches.length === 0) {
+      console.error(`Error: no file with ID ${target}${lang ? ` lang=${lang}` : ""}`);
+      process.exit(1);
+    }
+    if (matches.length > 1) {
+      console.error(`Error: ID ${target} has multiple lang versions — use --lang:`);
+      for (const f of matches) console.error(`  ${f}`);
+      process.exit(1);
+    }
+    filePath = matches[0];
+  }
+
+} else {
+  console.error("Usage: publish <id-or-path> [--lang <code>] [--tz <zone>] [--title <name>] [--latest-draft]");
+  process.exit(1);
+}
+
+// ── Read file ─────────────────────────────────────────────────────
+const raw = readFileSync(filePath, "utf-8");
+const { fm, body } = parseFrontMatter(raw);
+const p = parseFilename(basename(filePath));
+
+if (!p) {
+  console.error(`Error: ${filePath} does not match expected filename pattern (NNNN[-slug][.lang].md)`);
+  process.exit(1);
+}
+
+const resolvedTitle = fm.title ?? firstHeading(body);
+if (!resolvedTitle) {
+  console.error("Error: no title found — add a # heading or set title in front matter");
+  process.exit(1);
+}
+
+const resolvedLang = fm.lang ?? (p.lang ? p.lang : DEFAULT_LANG);
+const resolvedTz   = tz === "local"
+  ? Intl.DateTimeFormat().resolvedOptions().timeZone
+  : (tz ?? HOME_TZ);
+const resolvedDate = formatDateISO(resolvedTz);
+const slugPart     = slugify(resolvedTitle);
+const resolvedSlug = `${p.id}-${slugPart}`;
+
+// ── Rename file ───────────────────────────────────────────────────
+const langSuffix  = resolvedLang === DEFAULT_LANG ? "" : `.${resolvedLang}`;
+const newFilename = `${p.id}-${slugPart}${langSuffix}.md`;
+const newPath     = join(dirname(filePath), newFilename);
+
+if (newPath !== filePath) {
+  renameSync(filePath, newPath);
+  console.log(`renamed:   ${basename(filePath)} → ${newFilename}`);
+}
+
+// ── Update front matter ───────────────────────────────────────────
+const newFm = {
+  title: resolvedTitle,
+  date:  resolvedDate,
+  slug:  resolvedSlug,
+  draft: false,
+  lang:  resolvedLang,
+  ...(fm.tags?.length ? { tags: fm.tags } : {}),
+};
+
+writeFileSync(newPath, stringifyFrontMatter(newFm, body));
+console.log(`published: ${newFilename}`);
+console.log(`date:      ${resolvedDate}`);
+console.log(`slug:      ${resolvedSlug}`);
+
+// ── Pipeline ──────────────────────────────────────────────────────
+function run(script) {
+  console.log(`\n→ ${script}`);
+  execFileSync(join(ROOT, "scripts", script), [], { stdio: "inherit", cwd: ROOT });
+}
+
+run("fetch");
+run("build");
+run("deploy");

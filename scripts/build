@@ -1,0 +1,5 @@
+#!/bin/sh
+# build — thin wrapper around `pnpm build`
+set -e
+cd "$(dirname "$0")/.."
+pnpm build

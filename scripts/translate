@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+/**
+ * translate <id> --lang <code> [--folder <path>]
+ *
+ * Creates a translation draft for an existing piece.
+ * Never allocates a new ID — the translation shares the source ID.
+ *
+ * --lang    required — target language code (e.g. en, ja)
+ * --folder  optional — path relative to IA_WRITER_PATH (default: same folder as source)
+ */
+
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { execFileSync } from "node:child_process";
+import { loadEnv, findById } from "./_lib.mjs";
+
+const args = process.argv.slice(2);
+let id = null;
+let lang = null;
+let folder = null;
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--lang")   { lang   = args[++i]; continue; }
+  if (args[i] === "--folder") { folder = args[++i]; continue; }
+  if (!id) id = args[i];
+}
+
+if (!id || !lang) {
+  console.error("Usage: translate <id> --lang <code> [--folder <path>]");
+  process.exit(1);
+}
+
+const env = loadEnv();
+const IA_PATH = env.IA_WRITER_PATH;
+
+if (!IA_PATH) {
+  console.error("Error: IA_WRITER_PATH not set in .env");
+  process.exit(1);
+}
+
+const existing = findById(IA_PATH, id);
+if (existing.length === 0) {
+  console.error(`Error: no file with ID ${id} found`);
+  process.exit(1);
+}
+
+const padded = String(parseInt(id, 10)).padStart(4, "0");
+const targetDir = folder ? join(IA_PATH, folder) : dirname(existing[0]);
+const filename = `${padded}.${lang}.md`;
+const filePath = join(targetDir, filename);
+
+if (existsSync(filePath)) {
+  console.error(`Error: ${filePath} already exists`);
+  process.exit(1);
+}
+
+mkdirSync(targetDir, { recursive: true });
+writeFileSync(filePath, `---\ndraft: true\nlang: "${lang}"\n---\n\n# \n`);
+console.log(filePath);
+
+try {
+  execFileSync("open", ["-a", "iA Writer", filePath], { stdio: "ignore" });
+} catch {}
