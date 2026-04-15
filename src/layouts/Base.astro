@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 
+const DEFAULT_LANG = process.env.DEFAULT_LANG ?? "zh";
+
 interface Props {
   title: string;
   description?: string;
@@ -63,7 +65,7 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
       </footer>
     </div>
 
-    <script>
+    <script define:vars={{ DEFAULT_LANG }}>
       // Language switch: persist preference in localStorage, filter entry list
       const STORAGE_KEY = "preferred-lang";
       const switchEl = document.getElementById("lang-switch");
@@ -87,10 +89,9 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
         if (btn?.dataset.lang) applyLang(btn.dataset.lang);
       });
 
-      // Init: restore preference or detect from browser
+      // Init: restore saved preference, fall back to site default lang
       const saved = localStorage.getItem(STORAGE_KEY);
-      const detected = navigator.language.startsWith("zh") ? "zh" : "en";
-      applyLang(saved ?? detected);
+      applyLang(saved ?? DEFAULT_LANG);
     </script>
   </body>
 </html>
