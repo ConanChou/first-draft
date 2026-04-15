@@ -61,17 +61,16 @@ const toggleLabel = DEFAULT_LANG === "zh" ? "En" : "中";
       </footer>
     </div>
 
-    <script define:vars={{ DEFAULT_LANG }}>
+    <script is:inline define:vars={{ DEFAULT_LANG }}>
       const STORAGE_KEY = "preferred-lang";
       const LANGS = ["zh", "en"];
       const OTHER_LABEL = { zh: "En", en: "中" };
       const toggleEl = document.getElementById("lang-toggle");
 
-      function applyLang(lang: string) {
+      function applyLang(lang) {
         document.querySelectorAll("[data-lang]").forEach((el) => {
-          const elLang = (el as HTMLElement).dataset.lang;
-          (el as HTMLElement).style.display =
-            elLang === lang || !elLang ? "" : "none";
+          const elLang = el.dataset.lang;
+          el.style.display = elLang === lang || !elLang ? "" : "none";
         });
         if (toggleEl) toggleEl.textContent = OTHER_LABEL[lang] ?? (LANGS.find((l) => l !== lang) ?? lang);
         localStorage.setItem(STORAGE_KEY, lang);

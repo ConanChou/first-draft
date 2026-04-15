@@ -4,7 +4,7 @@
  */
 
 import {
-  readFileSync, writeFileSync, readdirSync, statSync, existsSync,
+  readFileSync, readdirSync, statSync, existsSync,
 } from "node:fs";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -155,7 +155,6 @@ export function findById(iaPath, id, lang = null) {
 
 // ── Find draft files ──────────────────────────────────────────────
 export function findDrafts(iaPath, titleMatch = null) {
-  const defaultLang = loadEnv().DEFAULT_LANG ?? "zh";
   return walkMd(iaPath).filter(f => {
     const p = parseFilename(f);
     if (!p) return false;

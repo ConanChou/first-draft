@@ -7,7 +7,8 @@
 /** Rewrite inline #tag tokens to HTML links (outside code/pre) */
 export function rewriteHashtagsHtml(html: string): string {
   // Only rewrite tags outside <code> and <pre> blocks
-  const HASHTAG = /(?<=\s|^)#([A-Za-z\u4e00-\u9fff\u3040-\u30ff][A-Za-z0-9_\-\u4e00-\u9fff\u3040-\u30ff]*)/g;
+  // After `>` covers #tag at the start of a paragraph (marked emits <p>#tag…)
+  const HASHTAG = /(?<=[\s>]|^)#([A-Za-z\u4e00-\u9fff\u3040-\u30ff][A-Za-z0-9_\-\u4e00-\u9fff\u3040-\u30ff]*)/g;
   // Simple approach: split on code blocks (already HTML-escaped at this point),
   // rewrite only in text segments
   return splitOnCode(html, (text) =>

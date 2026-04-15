@@ -253,7 +253,7 @@ Toggle between modes (when explore lands) will be a UI switch + URL query; zen r
   - en mode: only `lang: en`
   - additional langs added as needed
 - Default language: `zh` (can be overridden by browser `Accept-Language` or saved preference).
-- **Translation pairing is implicit by shared ID.** The renderer scans for sibling files with the same numeric prefix but different lang. On a post page, if siblings exist, a small "Read in <lang>" link is rendered per sibling.
+- **Translation pairing is implicit by shared ID.** The renderer scans for sibling files with the same numeric prefix but different lang. On a post page, if siblings exist, a small "Read in `<lang>`" link is rendered per sibling.
 - Folder listings also respect the active language filter. Folders without any posts in the active language are hidden from their parent listing.
 
 RSS is emitted per-language.
@@ -489,10 +489,12 @@ Secondary reference: [`cbp.tldr.ink`](/Users/conan/work/cbp.tldr.ink) — only f
 Concrete defaults:
 
 - **Font stack** (from conanchou's paperwhite theme):
-  ```
+
+  ```text
   -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Roboto, Arial,
   "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", "Microsoft Jhenghei", sans-serif
   ```
+
   System sans-serif with strong CJK fallbacks. Not serif.
 - **Font weight**: light (200–300 for body). Headings slightly heavier but not bold.
 - **Base font size**: ~1.1em. **Line height**: 1.5. **Content width**: ~700px.

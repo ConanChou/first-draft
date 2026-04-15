@@ -6,16 +6,21 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "node --test scripts/_lib.test.mjs && node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts",
+    "test:scripts": "node --test scripts/_lib.test.mjs",
+    "test:lib": "node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts"
   },
   "dependencies": {
-    "astro": "^6.1.6",
-    "tailwindcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2",
     "@astrojs/sitemap": "^3.7.2",
-    "marked": "^15.0.12"
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.1.6",
+    "marked": "^15.0.12",
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   },
   "engines": {
@@ -24,6 +29,9 @@
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
   }
 }
