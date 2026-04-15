@@ -4,8 +4,8 @@ node_modules/
 # build
 dist/
 
-# content cache (populated by `fetch` script)
-src/content/
+# content symlink / cache (created by `scripts/link`)
+src/content
 
 # env
 .env

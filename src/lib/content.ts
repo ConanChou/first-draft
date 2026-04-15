@@ -190,11 +190,15 @@ export function loadAllEntries(): Entry[] {
     const raw = readFileSync(filePath, "utf-8");
     const { fm, body } = parseFrontMatter(raw);
 
-    if (fm.draft === true) continue;
+    // In dev mode show drafts; in build/prod exclude them
+    const isDev = import.meta.env?.DEV === true;
+    if (!isDev && fm.draft === true) continue;
+    // Also skip bare NNNN.md files in prod (draft by convention, may lack FM)
+    if (!isDev && parsed.slug === null) continue;
 
     const folder = dirname(rel) === "." ? "" : dirname(rel);
     const lang = fm.lang ?? parsed.lang;
-    const slug = fm.slug ?? parsed.slug;
+    const slug = fm.slug ?? parsed.slug ?? parsed.id; // bare drafts use ID as slug
     const title = fm.title ?? extractFirstHeading(body) ?? parsed.slug;
     const date = fm.date ?? new Date(statSync(filePath).mtime).toISOString();
     const inlineTags = extractInlineTags(body);

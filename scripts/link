@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+/**
+ * link
+ *
+ * Creates src/content as a symlink pointing to IA_WRITER_PATH.
+ * Run once after cloning / setting up .env.
+ *
+ * With the symlink in place:
+ *   - `pnpm dev`   previews everything including drafts
+ *   - `pnpm build` silently skips draft:true files (content.ts filters them)
+ *   - `publish`    modifies files in-place; no copy step needed
+ */
+
+import { symlinkSync, existsSync, lstatSync, unlinkSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { loadEnv, ROOT } from "./_lib.mjs";
+
+const env = loadEnv();
+const IA_PATH = env.IA_WRITER_PATH;
+
+if (!IA_PATH) {
+  console.error("Error: IA_WRITER_PATH not set in .env");
+  process.exit(1);
+}
+if (!existsSync(IA_PATH)) {
+  console.error(`Error: IA_WRITER_PATH not found: ${IA_PATH}`);
+  process.exit(1);
+}
+
+const linkPath = join(ROOT, "src", "content");
+
+let stat = null;
+try { stat = lstatSync(linkPath); } catch { /* doesn't exist — fine */ }
+
+if (stat) {
+  if (stat.isSymbolicLink()) {
+    unlinkSync(linkPath);         // replace stale / wrong-target symlink
+  } else if (stat.isDirectory()) {
+    console.error(`Error: ${linkPath} is a real directory, not a symlink.`);
+    console.error("Remove it manually if it was created by the old fetch script.");
+    process.exit(1);
+  }
+}
+
+symlinkSync(IA_PATH, linkPath);
+console.log(`linked: src/content → ${IA_PATH}`);

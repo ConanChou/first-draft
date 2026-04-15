@@ -41,7 +41,21 @@ if (existsSync(filePath)) {
   process.exit(1);
 }
 
-writeFileSync(filePath, `---\ndraft: true\nlang: "${DEFAULT_LANG}"\n---\n\n# \n`);
+const template = [
+  "---",
+  `title: ""`,
+  `date: ""`,
+  `slug: ""`,
+  `draft: true`,
+  `lang: "${DEFAULT_LANG}"`,
+  `tags: []`,
+  "---",
+  "",
+  "# ",
+  "",
+].join("\n");
+
+writeFileSync(filePath, template);
 console.log(filePath);
 
 // Open in iA Writer (macOS only — no-op on other platforms)
