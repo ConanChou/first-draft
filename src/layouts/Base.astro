@@ -21,6 +21,7 @@ const {
 
 const siteTitle = "conan.one";
 const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
+const toggleLabel = DEFAULT_LANG === "zh" ? "En" : "中";
 ---
 
 <!doctype html>
@@ -45,51 +46,43 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
-    <div class="site-wrap">
-      <header class="site-header">
-        <a href="/" class="site-logo" aria-label="conan.one">
-          <img src="/logo.svg" alt="conan.one" width="40" height="40" />
-        </a>
-        <nav class="lang-switch" id="lang-switch" aria-label="Language">
-          <button data-lang="zh" class="active">中</button>
-          <button data-lang="en">En</button>
-        </nav>
-      </header>
+    <a href="/" class="site-logo" aria-label="conan.one">
+      <img src="/logo.svg" alt="conan.one" width="40" height="40" />
+    </a>
 
+    <div class="site-wrap">
       <main>
         <slot />
       </main>
 
       <footer class="site-footer">
+        <button class="lang-toggle" id="lang-toggle" aria-label="Switch language">{toggleLabel}</button>
         <span>© {new Date().getFullYear()} Conan Chou</span>
       </footer>
     </div>
 
     <script define:vars={{ DEFAULT_LANG }}>
-      // Language switch: persist preference in localStorage, filter entry list
       const STORAGE_KEY = "preferred-lang";
-      const switchEl = document.getElementById("lang-switch");
+      const LANGS = ["zh", "en"];
+      const OTHER_LABEL = { zh: "En", en: "中" };
+      const toggleEl = document.getElementById("lang-toggle");
 
       function applyLang(lang: string) {
-        // Update button states
-        switchEl?.querySelectorAll("button").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.lang === lang);
-        });
-        // Show/hide entries
         document.querySelectorAll("[data-lang]").forEach((el) => {
           const elLang = (el as HTMLElement).dataset.lang;
           (el as HTMLElement).style.display =
             elLang === lang || !elLang ? "" : "none";
         });
+        if (toggleEl) toggleEl.textContent = OTHER_LABEL[lang] ?? (LANGS.find((l) => l !== lang) ?? lang);
         localStorage.setItem(STORAGE_KEY, lang);
       }
 
-      switchEl?.addEventListener("click", (e) => {
-        const btn = (e.target as Element).closest("button[data-lang]") as HTMLButtonElement | null;
-        if (btn?.dataset.lang) applyLang(btn.dataset.lang);
+      toggleEl?.addEventListener("click", () => {
+        const current = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_LANG;
+        const next = LANGS.find((l) => l !== current) ?? LANGS[0];
+        applyLang(next);
       });
 
-      // Init: restore saved preference, fall back to site default lang
       const saved = localStorage.getItem(STORAGE_KEY);
       applyLang(saved ?? DEFAULT_LANG);
     </script>

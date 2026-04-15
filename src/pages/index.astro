@@ -22,8 +22,10 @@ function fmtDate(iso: string) {
           <a href={`/${e.slug}/`} class="entry-title">
             {e.title || `(untitled ${e.id})`}
           </a>
-          {isDev && e.fm.draft && <span class="draft-badge">draft</span>}
-          <span class="entry-date">{e.fm.draft ? "" : fmtDate(e.date)}</span>
+          <span class="entry-dots" aria-hidden="true"></span>
+          <span class="entry-date">
+            {isDev && e.fm.draft ? "draft" : !e.fm.draft ? fmtDate(e.date) : ""}
+          </span>
         </li>
       ))
     }

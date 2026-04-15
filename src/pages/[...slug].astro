@@ -30,8 +30,6 @@ function fmtDate(iso: string) {
       <h1 class="post-title">{entry.title}</h1>
       <p class="post-meta">
         <time datetime={entry.date}>{fmtDate(entry.date)}</time>
-        {" · "}
-        {entry.lang}
       </p>
       {
         entry.translations.length > 0 && (
