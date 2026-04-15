@@ -7,6 +7,7 @@
   --color-muted:      #666666;
   --color-border:     #e0e0e0;
   --color-accent:     #0066cc;
+  --logo-filter:      none;
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica,
@@ -25,6 +26,7 @@
     --color-muted:  #888888;
     --color-border: #484848;
     --color-accent: #5599ee;
+    --logo-filter:  invert(1);
   }
 }
 
@@ -62,11 +64,16 @@ body {
   margin-bottom: 2rem;
 }
 
-.site-title {
-  font-size: 1rem;
-  font-weight: 400;
+.site-logo {
+  display: flex;
+  align-items: center;
   text-decoration: none;
-  color: var(--color-text);
+}
+
+.site-logo img {
+  display: block;
+  /* Invert to match text color in dark mode */
+  filter: var(--logo-filter);
 }
 
 .lang-switch {

@@ -45,7 +45,9 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
   <body>
     <div class="site-wrap">
       <header class="site-header">
-        <a href="/" class="site-title">conan.one</a>
+        <a href="/" class="site-logo" aria-label="conan.one">
+          <img src="/logo.svg" alt="conan.one" width="40" height="40" />
+        </a>
         <nav class="lang-switch" id="lang-switch" aria-label="Language">
           <button data-lang="zh" class="active">中</button>
           <button data-lang="en">En</button>
