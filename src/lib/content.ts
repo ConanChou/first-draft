@@ -172,10 +172,15 @@ function walkDir(dir: string, relative = ""): string[] {
 
 // ── Load all entries ──────────────────────────────────────────────
 
+// process.env.NODE_ENV is reliably set by Vite/Astro in both dev and build;
+// import.meta.env.DEV is only available in Vite-transformed modules (not prerender scripts).
+const IS_DEV = process.env.NODE_ENV === "development";
+
 let _cache: Entry[] | null = null;
 
 export function loadAllEntries(): Entry[] {
-  if (_cache) return _cache;
+  // Don't cache in dev — file changes should be reflected on each request
+  if (!IS_DEV && _cache) return _cache;
   const paths = walkDir(CONTENT_DIR);
   const entries: Entry[] = [];
 
@@ -190,16 +195,13 @@ export function loadAllEntries(): Entry[] {
     const raw = readFileSync(filePath, "utf-8");
     const { fm, body } = parseFrontMatter(raw);
 
-    // In dev mode show drafts; in build/prod exclude them
-    const isDev = import.meta.env?.DEV === true;
-    if (!isDev && fm.draft === true) continue;
-    // Also skip bare NNNN.md files in prod (draft by convention, may lack FM)
-    if (!isDev && parsed.slug === null) continue;
+    if (!IS_DEV && fm.draft === true) continue;
+    if (!IS_DEV && parsed.slug === null) continue;
 
     const folder = dirname(rel) === "." ? "" : dirname(rel);
     const lang = fm.lang ?? parsed.lang;
-    const slug = fm.slug ?? parsed.slug ?? parsed.id; // bare drafts use ID as slug
-    const title = fm.title ?? extractFirstHeading(body) ?? parsed.slug;
+    const slug = fm.slug || parsed.slug || parsed.id; // bare drafts use ID as slug
+    const title = fm.title || extractFirstHeading(body) || parsed.slug || parsed.id;
     const date = fm.date ?? new Date(statSync(filePath).mtime).toISOString();
     const inlineTags = extractInlineTags(body);
     const tags = [...new Set([...(fm.tags ?? []), ...inlineTags])];
