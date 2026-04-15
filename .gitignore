@@ -13,5 +13,9 @@ src/content
 # astro
 .astro/
 
+# zig
+scripts/micropub-server/.zig-cache/
+scripts/micropub-server/zig-out/
+
 # OS
 .DS_Store

@@ -1,8 +1,5 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
