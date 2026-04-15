@@ -1,0 +1,127 @@
+#!/usr/bin/env node
+/**
+ * micropub — lifecycle wrapper for the micropub-server LaunchAgent.
+ *
+ * Subcommands:
+ *   install    copy plist to ~/Library/LaunchAgents/, bootstrap + enable
+ *   uninstall  bootout + remove plist
+ *   start      launchctl start
+ *   stop       launchctl stop
+ *   restart    launchctl kickstart -k
+ *   enable     launchctl enable
+ *   disable    launchctl disable
+ *   status     launchctl print
+ *   logs       tail err.log
+ */
+
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
+
+const LABEL = "one.conan.micropub";
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PLIST_SRC = join(ROOT, "scripts", "launchd", `${LABEL}.plist`);
+const LAUNCH_AGENTS = join(homedir(), "Library", "LaunchAgents");
+const PLIST_DEST = join(LAUNCH_AGENTS, `${LABEL}.plist`);
+const LOG_DIR = join(homedir(), "Library", "Logs", LABEL);
+const ERR_LOG = join(LOG_DIR, "err.log");
+const UID = process.getuid?.() ?? "";
+const SERVICE_TARGET = `gui/${UID}/${LABEL}`;
+
+const SUBCOMMANDS = [
+  "install",
+  "uninstall",
+  "start",
+  "stop",
+  "restart",
+  "enable",
+  "disable",
+  "status",
+  "logs",
+];
+
+function usage() {
+  process.stdout.write(
+    `Usage: micropub <subcommand>\n\nSubcommands:\n${SUBCOMMANDS.map((s) => `  ${s}`).join("\n")}\n`,
+  );
+}
+
+function launchctl(...args) {
+  return spawnSync("launchctl", args, { stdio: "inherit", encoding: "utf-8" });
+}
+
+function cmd(subcommand, extraArgs) {
+  switch (subcommand) {
+    case "install": {
+      if (!existsSync(PLIST_SRC)) {
+        process.stderr.write(`plist not found: ${PLIST_SRC}\n`);
+        process.exit(1);
+      }
+      const SERVER_BIN = join(ROOT, "scripts", "micropub-server", "zig-out", "bin", "micropub-server");
+      mkdirSync(LAUNCH_AGENTS, { recursive: true });
+      mkdirSync(LOG_DIR, { recursive: true });
+      // Substitute placeholders in plist template
+      const plistContent = readFileSync(PLIST_SRC, "utf-8")
+        .replace(/MICROPUB_SERVER_BIN/g, SERVER_BIN)
+        .replace(/CONAN_ONE_ROOT/g, ROOT)
+        .replace(/LOG_DIR/g, LOG_DIR);
+      writeFileSync(PLIST_DEST, plistContent, "utf-8");
+      const r = launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
+      if (r.status !== 0) {
+        // Already bootstrapped is ok (error 36/37)
+        process.stdout.write("note: already loaded or bootstrap attempted\n");
+      }
+      launchctl("enable", SERVICE_TARGET);
+      process.stdout.write(`installed: ${PLIST_DEST}\n`);
+      break;
+    }
+    case "uninstall": {
+      launchctl("bootout", `gui/${UID}`, PLIST_DEST);
+      if (existsSync(PLIST_DEST)) {
+        unlinkSync(PLIST_DEST);
+      }
+      process.stdout.write(`uninstalled: ${PLIST_DEST}\n`);
+      break;
+    }
+    case "start":
+      launchctl("start", LABEL);
+      break;
+    case "stop":
+      launchctl("stop", LABEL);
+      break;
+    case "restart":
+      launchctl("kickstart", "-k", SERVICE_TARGET);
+      break;
+    case "enable":
+      launchctl("enable", SERVICE_TARGET);
+      break;
+    case "disable":
+      launchctl("disable", SERVICE_TARGET);
+      break;
+    case "status":
+      launchctl("print", SERVICE_TARGET);
+      break;
+    case "logs": {
+      const lines = extraArgs.find((a) => a.startsWith("--lines="))?.split("=")[1] ?? "50";
+      spawnSync("tail", ["-n", lines, ERR_LOG], { stdio: "inherit" });
+      break;
+    }
+    default:
+      process.stderr.write(`unknown subcommand: ${subcommand}\n\n`);
+      usage();
+      process.exit(1);
+  }
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+const [, , subcommand, ...rest] = process.argv;
+
+if (!subcommand || subcommand === "--help" || subcommand === "-h") {
+  usage();
+  process.exit(subcommand ? 0 : 1);
+}
+
+await cmd(subcommand, rest);
