@@ -2,12 +2,12 @@
 import Base from "../layouts/Base.astro";
 import { loadAllEntries } from "../lib/content";
 
-// Load all published entries for the home listing
+const isDev = import.meta.env.DEV;
+
 const entries = loadAllEntries().sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
 );
 
-// Format date as YYYY-MM-DD
 function fmtDate(iso: string) {
   return iso.slice(0, 10);
 }
@@ -17,10 +17,13 @@ function fmtDate(iso: string) {
   <ul class="entry-list">
     {
       entries.map((e) => (
-        <li data-lang={e.lang}>
+        <li data-lang={e.lang} class:list={[{ draft: e.fm.draft }]}>
           <span class="entry-num">{e.id}</span>
-          <a href={`/${e.slug}/`} class="entry-title">{e.title}</a>
-          <span class="entry-date">{fmtDate(e.date)}</span>
+          <a href={`/${e.slug}/`} class="entry-title">
+            {e.title || `(untitled ${e.id})`}
+          </a>
+          {isDev && e.fm.draft && <span class="draft-badge">draft</span>}
+          <span class="entry-date">{e.fm.draft ? "" : fmtDate(e.date)}</span>
         </li>
       ))
     }
