@@ -110,6 +110,10 @@ body {
   color: var(--color-text);
 }
 
+.section-intro {
+  padding: 0 0.5rem 3rem 0.5rem;
+}
+
 /* ── Entry list ─────────────────────────────────────────── */
 .entry-list {
   list-style: none;
@@ -143,7 +147,7 @@ body {
   color: var(--item-color);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-  max-width: 4em;
+  width: 4ch;
   overflow: hidden;
   transition: color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease;
 }
@@ -196,7 +200,8 @@ body {
 
 /* ── Post ───────────────────────────────────────────────── */
 .post-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
 }
 
 .post-title {

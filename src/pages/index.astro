@@ -1,12 +1,21 @@
 ---
 import Base from "../layouts/Base.astro";
-import { loadAllEntries } from "../lib/content";
+import { loadAllEntries, loadAllFolders, type Entry, type FolderEntry } from "../lib/content";
 
 const isDev = import.meta.env.DEV;
 
-const entries = loadAllEntries().sort(
-  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-);
+// Top-level entries only (no folder-nested posts)
+const topEntries = loadAllEntries().filter((e) => e.folder === "");
+const folders = loadAllFolders();
+
+type ListItem =
+  | { kind: "entry"; item: Entry }
+  | { kind: "folder"; item: FolderEntry };
+
+const items: ListItem[] = [
+  ...topEntries.map((e) => ({ kind: "entry" as const, item: e })),
+  ...folders.map((f) => ({ kind: "folder" as const, item: f })),
+].sort((a, b) => new Date(b.item.date).getTime() - new Date(a.item.date).getTime());
 
 function fmtDate(iso: string) {
   return iso.slice(0, 10);
@@ -16,16 +25,27 @@ function fmtDate(iso: string) {
 <Base title="conan.one">
   <ul class="entry-list">
     {
-      entries.map((e) => (
-        <li data-lang={e.lang} class:list={[{ draft: e.fm.draft }]}>
-          <span class="entry-num">{e.id}</span>
-          <a href={`/${e.slug}/`} class="entry-title">
-            {e.title || `(untitled ${e.id})`}
+      items.map(({ kind, item }) => kind === "entry" ? (
+        <li data-lang={(item as Entry).lang} class:list={[{ draft: (item as Entry).fm.draft }]}>
+          <span class="entry-num">{(item as Entry).id}</span>
+          <a href={`/${item.slug}/`} class="entry-title">
+            {item.title || `(untitled ${(item as Entry).id})`}
           </a>
           <span class="entry-dots" aria-hidden="true"></span>
           <span class="entry-date">
-            {isDev && e.fm.draft ? "draft" : !e.fm.draft ? fmtDate(e.date) : ""}
+            {isDev && (item as Entry).fm.draft
+              ? "draft"
+              : !(item as Entry).fm.draft
+              ? fmtDate(item.date)
+              : ""}
           </span>
+        </li>
+      ) : (
+        <li data-lang={(item as FolderEntry).lang}>
+          <span class="entry-num">▓▓▓▓</span>
+          <a href={`/${item.slug}/`} class="entry-title">{item.title}</a>
+          <span class="entry-dots" aria-hidden="true"></span>
+          <span class="entry-date">{fmtDate(item.date)}</span>
         </li>
       ))
     }

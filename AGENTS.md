@@ -133,9 +133,9 @@ Linter errors block the refactor step — fix before marking done. No `// eslint
 ## Pending work (Phase 1)
 
 - [ ] Sibling output endpoints: `.md` (prose form per spec §5.3) and `.partial.html` per each post/folder/home
-- [ ] Folder-as-section pages (`/sketch/` renders its own listing)
+- [x] Folder-as-section pages (`/sketch/` renders its own listing)
 - [ ] ID shortcut routes: `/0042` → canonical slug of active-lang version
-- [ ] Micropub server (Zig, ~150 lines) + launchd plist + `micropub` lifecycle wrapper
+- [x] Micropub server (Zig, ~150 lines) + launchd plist + `micropub` lifecycle wrapper
 - [ ] Tag pages (`/tags/<name>/`, `/tags/`)
 - [ ] RSS feeds per language (`/feed.zh.xml`, `/feed.en.xml`)
 

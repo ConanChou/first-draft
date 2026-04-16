@@ -238,6 +238,68 @@ export function loadAllEntries(): Entry[] {
   return entries;
 }
 
+export function loadAllFolders(
+  contentDir: string = CONTENT_DIR,
+  allEntries: Entry[] = loadAllEntries(),
+): FolderEntry[] {
+  const folders: FolderEntry[] = [];
+
+  for (const name of readdirSync(contentDir)) {
+    if (name.startsWith(".") || name.startsWith("_")) continue;
+    const dirPath = join(contentDir, name);
+    const stat = statSync(dirPath);
+    if (!stat.isDirectory()) continue;
+
+    let title = name;
+    let date: string | undefined;
+    let lang = DEFAULT_LANG;
+    let tags: string[] = [];
+    let intro: string | undefined;
+
+    const indexPath = join(dirPath, "index.md");
+    try {
+      const raw = readFileSync(indexPath, "utf-8");
+      const { fm, body } = parseFrontMatter(raw);
+      title = fm.title ?? name;
+      date = fm.date;
+      lang = fm.lang ?? DEFAULT_LANG;
+      tags = fm.tags ?? [];
+      if (body.trim()) intro = body.trim();
+    } catch {
+      // No index.md — derive date from mtimes below
+    }
+
+    if (!date) {
+      let latest = 0;
+      for (const child of readdirSync(dirPath)) {
+        if (child === "index.md") continue;
+        try {
+          const ms = statSync(join(dirPath, child)).mtimeMs;
+          if (ms > latest) latest = ms;
+        } catch { /* skip */ }
+      }
+      date = latest > 0 ? new Date(latest).toISOString() : new Date().toISOString();
+    }
+
+    const children = allEntries.filter((e) => e.folder === name);
+
+    folders.push({
+      name,
+      dirPath,
+      folder: "",
+      slug: name,
+      title,
+      date,
+      lang,
+      tags,
+      intro,
+      children,
+    });
+  }
+
+  return folders;
+}
+
 export function getEntryBySlug(slug: string): Entry | undefined {
   return loadAllEntries().find((e) => e.slug === slug);
 }
