@@ -57,6 +57,7 @@ body {
   max-width: var(--content-width);
   margin: 0 auto;
   padding-top: 12.5vh;
+  transition: padding-top 0.2s ease;
 }
 
 /* ── Logo (fixed top-left) ───────────────────────────────── */
@@ -73,7 +74,7 @@ body {
 .site-logo img {
   display: block;
   filter: var(--logo-filter-dim);
-  transition: filter 0.2s ease;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 .site-logo:hover img {
@@ -117,19 +118,21 @@ body {
 }
 
 .entry-list li {
+  --item-color: var(--color-muted);
   font-size: 1.3em;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  padding: 0rem 0.5rem;
+  padding: 0 0.5rem;
   border-radius: 0.3em;
-  transition: background 0.1s;
+  transition: background 0.2s ease-in-out;
   position: relative;
   cursor: pointer;
 }
 
 .entry-list li:hover {
   background: var(--color-hover);
+  --item-color: var(--color-text);
 }
 
 .entry-list li.draft .entry-title {
@@ -137,8 +140,12 @@ body {
 }
 
 .entry-num {
-  color: var(--color-muted);
+  color: var(--item-color);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  max-width: 4em;
+  overflow: hidden;
+  transition: color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease;
 }
 
 .entry-title::after {
@@ -156,18 +163,35 @@ body {
   flex-shrink: 1;
 }
 
-
 .entry-dots {
   flex: 1;
-  border-bottom: 2px dotted var(--color-muted);
+  border-bottom: 2px dotted var(--item-color);
   min-width: 1em;
   align-self: flex-end;
   margin-bottom: 0.65em;
+  overflow: hidden;
+  transition: border-color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease, min-width 0.2s ease;
 }
 
 .entry-date {
-  color: var(--color-muted);
+  color: var(--item-color);
   flex-shrink: 0;
+  max-width: 8em;
+  overflow: hidden;
+  transition: color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .site-wrap { padding-top: 6.25vh; }
+  .entry-dots { opacity: 0; max-width: 0; min-width: 0; }
+  .entry-date { opacity: 0; max-width: 0; }
+}
+
+@media (max-width: 380px) {
+  .site-wrap { padding-top: 3.125vh; }
+  .entry-num { opacity: 0; max-width: 0; }
+  .site-logo img { transform: scale(0.667); transform-origin: top left; }
 }
 
 /* ── Post ───────────────────────────────────────────────── */
