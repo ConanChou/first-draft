@@ -61,6 +61,11 @@ conan.one/
 
 ---
 
+## Code Quality
+
+- naming should be accurate and descriptive
+- always try to reuse existing utilities. If you notice certain patterns emerging, factor out a new utility.
+
 ## TDD mandate
 
 **All scripts and major pipeline components use red-green TDD.**

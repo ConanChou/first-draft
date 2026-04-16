@@ -1,0 +1,50 @@
+---
+import { loadAllEntries } from "../lib/content.js";
+
+const DEFAULT_LANG = process.env.DEFAULT_LANG ?? "zh";
+
+export function getStaticPaths() {
+  const entries = loadAllEntries();
+  const byId = new Map<string, typeof entries>();
+  for (const e of entries) {
+    const list = byId.get(e.id) ?? [];
+    list.push(e);
+    byId.set(e.id, list);
+  }
+  return [...byId.entries()].map(([id, variants]) => ({
+    params: { id },
+    props: { variants },
+  }));
+}
+
+interface Props {
+  variants: Awaited<ReturnType<typeof loadAllEntries>>;
+}
+
+const { variants } = Astro.props;
+const defaultVariant =
+  variants.find((v) => v.lang === DEFAULT_LANG) ?? variants[0]!;
+const defaultUrl = `/${defaultVariant.slug}`;
+const langUrls = Object.fromEntries(variants.map((v) => [v.lang, `/${v.slug}`]));
+const langUrlsJson = JSON.stringify(langUrls);
+---
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0; url=${defaultUrl}`} />
+    <title>Redirecting…</title>
+  </head>
+  <body>
+    <script is:inline define:vars={{ langUrls: langUrlsJson, defaultUrl }}>
+      const urls = JSON.parse(langUrls);
+      const lang = localStorage.getItem("preferred-lang") ||
+        navigator.language.split("-")[0] || "";
+      window.location.replace(urls[lang] || defaultUrl);
+    </script>
+    <noscript>
+      <a href={defaultUrl}>Continue</a>
+    </noscript>
+  </body>
+</html>
