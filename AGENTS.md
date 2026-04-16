@@ -142,7 +142,7 @@ Linter errors block the refactor step — fix before marking done. No `// eslint
 - [x] ID shortcut routes: `/0042` → canonical slug of active-lang version
 - [x] Micropub server (Zig, ~150 lines) + launchd plist + `micropub` lifecycle wrapper
 - [x] Tag pages (`/tags/<name>/`, `/tags/`)
-- [ ] RSS feeds per language (`/feed.zh.xml`, `/feed.en.xml`)
+- [x] RSS feeds per language (`/feed.zh.xml`, `/feed.en.xml`)
 
 ---
 
