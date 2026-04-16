@@ -74,7 +74,7 @@ body {
 .site-logo img {
   display: block;
   filter: var(--logo-filter-dim);
-  transition: filter 0.2s ease, transform 0.2s ease;
+  transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .site-logo:hover img {
@@ -96,22 +96,15 @@ body {
   color: var(--color-muted);
 }
 
-.lang-toggle {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--color-muted);
-  font-family: inherit;
-  font-size: inherit;
-}
-
-.lang-toggle:hover {
-  color: var(--color-text);
-}
-
 .section-intro {
   padding: 0 0.5rem 3rem 0.5rem;
+}
+
+.page-heading {
+  font-size: 1.1em;
+  font-weight: 400;
+  margin: 0 0 1.5rem;
+  padding: 0 0.5rem;
 }
 
 /* ── Entry list ─────────────────────────────────────────── */
@@ -149,7 +142,7 @@ body {
   font-variant-numeric: tabular-nums;
   width: 4ch;
   overflow: hidden;
-  transition: color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease;
+  transition: color 0.1s ease-in-out;
 }
 
 .entry-title::after {
@@ -174,7 +167,7 @@ body {
   align-self: flex-end;
   margin-bottom: 0.65em;
   overflow: hidden;
-  transition: border-color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease, min-width 0.2s ease;
+  transition: border-color 0.1s ease-in-out;
 }
 
 .entry-date {
@@ -182,7 +175,7 @@ body {
   flex-shrink: 0;
   max-width: 8em;
   overflow: hidden;
-  transition: color 0.1s ease-in-out, opacity 0.2s ease, max-width 0.2s ease;
+  transition: color 0.1s ease-in-out;
 }
 
 /* ── Responsive ─────────────────────────────────────────── */
@@ -213,6 +206,18 @@ body {
 .post-meta {
   font-size: 0.85em;
   color: var(--color-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.lang-switch {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.lang-switch:hover {
+  color: var(--color-text);
 }
 
 .post-body {
@@ -256,12 +261,3 @@ body {
 
 .post-tags a:hover { color: var(--color-text); }
 
-.translation-links {
-  margin-top: 0.4rem;
-  font-size: 0.82em;
-  color: var(--color-muted);
-}
-
-.translation-links a {
-  color: var(--color-accent);
-}

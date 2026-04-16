@@ -1,11 +1,13 @@
 ---
-import { getStaticPaths as _getStaticPaths, type RouteEntry, type FolderRouteEntry } from "../lib/routes";
 import type { GetStaticPathsResult } from "astro";
 import Base from "../layouts/Base.astro";
-import type { Entry } from "../lib/content";
+import EntryItem from "../components/EntryItem.astro";
+import { getStaticPaths as routesGetStaticPaths, type RouteEntry, type FolderRouteEntry } from "../lib/routes";
+import { getEntryById } from "../lib/content";
+import { fmtDate } from "../lib/utils";
 
 export async function getStaticPaths(): Promise<GetStaticPathsResult> {
-  return _getStaticPaths();
+  return routesGetStaticPaths();
 }
 
 type Props =
@@ -14,79 +16,58 @@ type Props =
 
 const props = Astro.props as Props;
 const { siteUrl } = props;
-const isDev = import.meta.env.DEV;
 
-function fmtDate(iso: string) {
-  return iso.slice(0, 10);
-}
+const LANG_LABELS: Record<string, string> = { zh: "中文", en: "English" };
 
-const isFolder = props.kind === "folder";
+const canonicalUrl = props.kind === "folder"
+  ? `${siteUrl}/${props.folder.slug}/`
+  : `${siteUrl}/${props.entry.slug}/`;
+const pageTitle = props.kind === "folder" ? props.folder.title : props.entry.title;
+const pageLang = props.kind === "folder" ? props.folder.lang : props.entry.lang;
 
-// Post-specific values
-const entry = isFolder ? null : (props as { kind: "post"; entry: RouteEntry }).entry;
-// Folder-specific values
-const folder = isFolder ? (props as { kind: "folder"; folder: FolderRouteEntry }).folder : null;
-const folderChildren = folder
-  ? [...folder.children].sort(
-      (a, b) => new Date((b as Entry).date).getTime() - new Date((a as Entry).date).getTime()
+const folderChildren = props.kind === "folder"
+  ? [...props.folder.children].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )
   : [];
 
-const canonicalUrl = isFolder
-  ? `${siteUrl}/${folder!.slug}/`
-  : `${siteUrl}/${entry!.slug}/`;
-const pageTitle = isFolder ? folder!.title : entry!.title;
-const pageLang = isFolder ? folder!.lang : entry!.lang;
+const siblingEntry = props.kind === "post" && props.entry.translations[0]
+  ? getEntryById(props.entry.id, props.entry.translations[0]) ?? null
+  : null;
 ---
 
 <Base title={pageTitle} lang={pageLang} canonicalUrl={canonicalUrl}>
-  {isFolder ? (
+  {props.kind === "folder" ? (
     <div class="section-page">
       <header class="post-header">
-        <h1 class="post-title">{folder!.title}</h1>
+        <h1 class="post-title">{props.folder.title}</h1>
       </header>
-      {folder!.introHtml && (
-        <div class="post-body section-intro" set:html={folder!.introHtml} />
+      {props.folder.introHtml && (
+        <div class="post-body section-intro" set:html={props.folder.introHtml} />
       )}
       <ul class="entry-list">
-        {folderChildren.map((child) => {
-          const e = child as Entry;
-          return (
-            <li data-lang={e.lang} class:list={[{ draft: e.fm?.draft }]}>
-              <span class="entry-num">{e.id}</span>
-              <a href={`/${e.slug}/`} class="entry-title">
-                {e.title || `(untitled ${e.id})`}
-              </a>
-              <span class="entry-dots" aria-hidden="true"></span>
-              <span class="entry-date">
-                {isDev && e.fm?.draft ? "draft" : !e.fm?.draft ? fmtDate(e.date) : ""}
-              </span>
-            </li>
-          );
-        })}
+        {folderChildren.map((child) => <EntryItem entry={child} />)}
       </ul>
     </div>
   ) : (
-    <article class="note" data-id={entry!.id}>
+    <article class="note" data-id={props.entry.id}>
       <header class="post-header">
-        <h1 class="post-title">{entry!.title}</h1>
+        <h1 class="post-title">{props.entry.title}</h1>
         <p class="post-meta">
-          <time datetime={entry!.date}>{fmtDate(entry!.date)}</time>
+          <time datetime={props.entry.date}>{fmtDate(props.entry.date)}</time>
+          {siblingEntry && (
+            <a
+              href={`/${siblingEntry.slug}/`}
+              class="lang-switch"
+              data-lang={siblingEntry.lang}
+            >{LANG_LABELS[siblingEntry.lang] ?? siblingEntry.lang}</a>
+          )}
         </p>
-        {entry!.translations.length > 0 && (
-          <p class="translation-links">
-            {entry!.translations.map((lang) => (
-              <span>
-                Read in <a href={`/${entry!.id}`}>{lang}</a>
-              </span>
-            ))}
-          </p>
-        )}
       </header>
-      <div class="post-body" set:html={entry!.renderedHtml} />
-      {entry!.tags.length > 0 && (
+      <div class="post-body" set:html={props.entry.bodyHtml} />
+      {props.entry.tags.length > 0 && (
         <div class="post-tags">
-          {entry!.tags.map((tag) => (
+          {props.entry.tags.map((tag) => (
             <a href={`/tags/${tag}/`}>#{tag}</a>
           ))}
         </div>

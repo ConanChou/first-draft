@@ -72,8 +72,8 @@ export interface FolderEntry {
   tags: string[];
   /** Optional intro body from index.md */
   intro?: string;
-  /** Direct child entries (files + subfolders) */
-  children: (Entry | FolderEntry)[];
+  /** Direct child entries */
+  children: Entry[];
 }
 
 // ── Filename parsing ───────────────────────────────────────────────
@@ -196,11 +196,13 @@ export function loadAllEntries(): Entry[] {
     const { fm, body } = parseFrontMatter(raw);
 
     if (!IS_DEV && fm.draft === true) continue;
-    if (!IS_DEV && parsed.slug === null) continue;
 
     const folder = dirname(rel) === "." ? "" : dirname(rel);
     const lang = fm.lang ?? parsed.lang;
-    const slug = fm.slug || parsed.slug || parsed.id; // bare drafts use ID as slug
+    const baseSlug = fm.slug || parsed.slug || parsed.id;
+    // Non-default languages always get a /{lang}/ prefix to avoid slug collisions.
+    // fm.slug is treated as the base (prefix-free) slug, not the final URL path.
+    const slug = lang !== DEFAULT_LANG ? `${lang}/${baseSlug}` : baseSlug;
     const title = fm.title || extractFirstHeading(body) || parsed.slug || parsed.id;
     const date = fm.date ?? new Date(statSync(filePath).mtime).toISOString();
     const inlineTags = extractInlineTags(body);
@@ -238,6 +240,7 @@ export function loadAllEntries(): Entry[] {
   return entries;
 }
 
+/** Top-level folders only — nested section dirs are not supported. */
 export function loadAllFolders(
   contentDir: string = CONTENT_DIR,
   allEntries: Entry[] = loadAllEntries(),

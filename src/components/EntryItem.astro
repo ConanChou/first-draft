@@ -1,0 +1,21 @@
+---
+import type { Entry } from "../lib/content";
+import { fmtDate } from "../lib/utils";
+
+interface Props {
+  entry: Entry;
+}
+
+const { entry } = Astro.props;
+const isDev = import.meta.env.DEV;
+const dateLabel = entry.fm.draft ? (isDev ? "draft" : "") : fmtDate(entry.date);
+---
+
+<li data-id={entry.id} data-lang={entry.lang} class:list={[{ draft: entry.fm.draft }]}>
+  <span class="entry-num">{entry.id}</span>
+  <a href={`/${entry.slug}/`} class="entry-title">
+    {entry.title || `(untitled ${entry.id})`}
+  </a>
+  <span class="entry-dots" aria-hidden="true"></span>
+  <span class="entry-date">{dateLabel}</span>
+</li>

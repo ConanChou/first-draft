@@ -1,22 +1,11 @@
-/**
- * Markdown → HTML renderer.
- * Uses the `marked` library for lightweight, fast rendering.
- */
+/** Markdown → HTML renderer (marked + hashtag rewriting). */
 
 import { marked } from "marked";
 import { rewriteHashtagsHtml } from "./markdown.js";
+import { stripLeadingH1 } from "./utils.js";
 
-marked.setOptions({
-  gfm: true,
-  breaks: false,
-});
+marked.setOptions({ gfm: true, breaks: false });
 
-/** Strip a leading h1 (# …) from the body so it isn't duplicated below the post title. */
-function stripLeadingH1(body: string): string {
-  return body.replace(/^\s*#[^#][^\n]*(\n|$)/, "");
-}
-
-/** Render markdown body to HTML, with #tag rewriting */
 export async function renderMd(body: string): Promise<string> {
   const raw = await marked.parse(stripLeadingH1(body));
   return rewriteHashtagsHtml(raw);

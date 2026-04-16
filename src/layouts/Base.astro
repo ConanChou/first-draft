@@ -1,7 +1,6 @@
 ---
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
-
-const DEFAULT_LANG = process.env.DEFAULT_LANG ?? "zh";
 
 interface Props {
   title: string;
@@ -21,7 +20,6 @@ const {
 
 const siteTitle = "conan.one";
 const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
-const toggleLabel = DEFAULT_LANG === "zh" ? "En" : "中";
 ---
 
 <!doctype html>
@@ -44,9 +42,10 @@ const toggleLabel = DEFAULT_LANG === "zh" ? "En" : "中";
     <link rel="alternate" type="application/rss+xml" title="conan.one (en)" href="/feed.en.xml" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <ClientRouter />
   </head>
   <body>
-    <a href="/" class="site-logo" aria-label="conan.one">
+    <a href="/" class="site-logo">
       <img src="/logo.svg" alt="conan.one" width="40" height="40" />
     </a>
 
@@ -56,34 +55,41 @@ const toggleLabel = DEFAULT_LANG === "zh" ? "En" : "中";
       </main>
 
       <footer class="site-footer">
-        <button class="lang-toggle" id="lang-toggle" aria-label="Switch language">{toggleLabel}</button>
-        <span>© {new Date().getFullYear()} Conan</span>
+        <span style="margin-left: auto">© {new Date().getFullYear()} Conan</span>
       </footer>
     </div>
 
-    <script is:inline define:vars={{ DEFAULT_LANG }}>
+    <script>
       const STORAGE_KEY = "preferred-lang";
-      const LANGS = ["zh", "en"];
-      const OTHER_LABEL = { zh: "En", en: "中" };
-      const toggleEl = document.getElementById("lang-toggle");
 
-      function applyLang(lang) {
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const elLang = el.dataset.lang;
-          el.style.display = elLang === lang || !elLang ? "" : "none";
-        });
-        if (toggleEl) toggleEl.textContent = OTHER_LABEL[lang] ?? (LANGS.find((l) => l !== lang) ?? lang);
-        localStorage.setItem(STORAGE_KEY, lang);
+      function getPreferredLang(): string {
+        return localStorage.getItem(STORAGE_KEY) || navigator.language.split("-")[0] || "zh";
       }
 
-      toggleEl?.addEventListener("click", () => {
-        const current = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_LANG;
-        const next = LANGS.find((l) => l !== current) ?? LANGS[0];
-        applyLang(next);
+      function deduplicateSiblings() {
+        const lang = getPreferredLang();
+        const groups = new Map<string, HTMLElement[]>();
+        document.querySelectorAll<HTMLElement>("li[data-id][data-lang]").forEach((el) => {
+          const id = el.dataset.id!;
+          if (!groups.has(id)) groups.set(id, []);
+          groups.get(id)!.push(el);
+        });
+        groups.forEach((els) => {
+          if (els.length < 2) return;
+          const preferred = els.find((el) => el.dataset.lang === lang);
+          if (preferred) {
+            els.forEach((el) => { el.style.display = el === preferred ? "" : "none"; });
+          }
+        });
+      }
+
+      // Save lang preference when clicking a lang-switch link
+      document.addEventListener("click", (e) => {
+        const link = (e.target as Element).closest<HTMLAnchorElement>(".lang-switch");
+        if (link?.dataset.lang) localStorage.setItem(STORAGE_KEY, link.dataset.lang);
       });
 
-      const saved = localStorage.getItem(STORAGE_KEY);
-      applyLang(saved ?? DEFAULT_LANG);
+      document.addEventListener("astro:page-load", deduplicateSiblings);
     </script>
   </body>
 </html>

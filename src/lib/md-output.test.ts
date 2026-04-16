@@ -150,15 +150,13 @@ describe("homeToMd", () => {
   });
 
   it("lists entries with .md links", () => {
-    const entry = makeEntry();
-    const md = homeToMd([{ kind: "entry", item: entry }], "https://conan.one");
+    const md = homeToMd([makeEntry()], "https://conan.one");
     assert.ok(md.includes("/0042-on-writing.md"), "entry link");
     assert.ok(md.includes("On writing"), "entry title");
   });
 
   it("lists folders with .md links", () => {
-    const folder = makeFolder();
-    const md = homeToMd([{ kind: "folder", item: folder }], "https://conan.one");
+    const md = homeToMd([makeFolder()], "https://conan.one");
     assert.ok(md.includes("/sketch.md"), "folder link");
     assert.ok(md.includes("Sketch"), "folder title");
   });
