@@ -26,6 +26,7 @@ export interface FrontMatter {
   draft?: boolean;
   lang?: string;
   tags?: string[];
+  desc?: string;
 }
 
 export interface Entry {
@@ -49,6 +50,8 @@ export interface Entry {
   date: string;
   /** Tags merged from FM + inline #tags */
   tags: string[];
+  /** Meta description (from fm.desc or first paragraph) */
+  description: string;
   /** IDs of sibling language versions */
   translations: string[];
 }
@@ -113,7 +116,7 @@ export function parseFrontMatter(raw: string): {
     if (colon === -1) continue;
     const key = line.slice(0, colon).trim() as keyof FrontMatter;
     const val = line.slice(colon + 1).trim();
-    if (key === "title" || key === "slug" || key === "date" || key === "lang") {
+    if (key === "title" || key === "slug" || key === "date" || key === "lang" || key === "desc") {
       (fm as Record<string, unknown>)[key] = val.replace(/^["']|["']$/g, "");
     } else if (key === "draft") {
       (fm as Record<string, unknown>)[key] = val === "true";
@@ -151,6 +154,27 @@ export function extractInlineTags(body: string): string[] {
 export function extractFirstHeading(body: string): string | undefined {
   const m = /^#\s+(.+)$/m.exec(body);
   return m?.[1]?.trim();
+}
+
+export function extractFirstParagraph(body: string): string | undefined {
+  const noCode = body.replace(/```[\s\S]*?```/g, "");
+  const noH1 = noCode.replace(/^\s*#[^#][^\n]*\n/, "");
+  for (const block of noH1.split(/\n\n+/)) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+    if (/^[#>]/.test(trimmed)) continue;
+    if (/^(- |\* |\+ |\d+\. )/.test(trimmed)) continue;
+    const plain = trimmed
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/`[^`]*`/g, "")
+      .replace(/\*\*([^*]*)\*\*/g, "$1")
+      .replace(/\*([^*]*)\*/g, "$1")
+      .replace(/_([^_]*)_/g, "$1")
+      .replace(/\n/g, " ")
+      .trim();
+    if (plain) return plain;
+  }
+  return undefined;
 }
 
 // ── File walker ───────────────────────────────────────────────────
@@ -207,6 +231,7 @@ export function loadAllEntries(): Entry[] {
     const date = fm.date ?? new Date(statSync(filePath).mtime).toISOString();
     const inlineTags = extractInlineTags(body);
     const tags = [...new Set([...(fm.tags ?? []), ...inlineTags])];
+    const description = fm.desc ?? extractFirstParagraph(body) ?? "";
 
     entries.push({
       id: parsed.id,
@@ -219,6 +244,7 @@ export function loadAllEntries(): Entry[] {
       title,
       date,
       tags,
+      description,
       translations: [], // filled in next pass
     });
   }

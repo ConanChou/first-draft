@@ -8,6 +8,7 @@ import {
   parseFrontMatter,
   extractInlineTags,
   extractFirstHeading,
+  extractFirstParagraph,
   loadAllFolders,
   type Entry,
 } from "./content.js";
@@ -62,6 +63,7 @@ slug: on-writing-well
 draft: false
 lang: en
 tags: ["writing", "craft"]
+desc: "A short description."
 ---
 
 Body here.`;
@@ -72,6 +74,7 @@ Body here.`;
     assert.equal(fm.draft, false);
     assert.equal(fm.lang, "en");
     assert.deepEqual(fm.tags, ["writing", "craft"]);
+    assert.equal(fm.desc, "A short description.");
     assert.equal(body.trim(), "Body here.");
   });
 
@@ -165,6 +168,50 @@ describe("extractFirstHeading", () => {
   });
 });
 
+// ── extractFirstParagraph ────────────────────────────────────────
+
+describe("extractFirstParagraph", () => {
+  it("returns first plain paragraph", () => {
+    assert.equal(extractFirstParagraph("Hello world."), "Hello world.");
+  });
+
+  it("skips leading h1 and returns first paragraph", () => {
+    assert.equal(
+      extractFirstParagraph("# Title\n\nFirst para.\n\nSecond para."),
+      "First para.",
+    );
+  });
+
+  it("skips headings and returns first text block", () => {
+    assert.equal(
+      extractFirstParagraph("## Subheading\n\nActual text."),
+      "Actual text.",
+    );
+  });
+
+  it("strips inline markdown", () => {
+    assert.equal(
+      extractFirstParagraph("**Bold** and *italic* and [link](https://x.com)."),
+      "Bold and italic and link.",
+    );
+  });
+
+  it("returns undefined for heading-only body", () => {
+    assert.equal(extractFirstParagraph("# Only heading"), undefined);
+  });
+
+  it("returns undefined for empty body", () => {
+    assert.equal(extractFirstParagraph(""), undefined);
+  });
+
+  it("skips fenced code blocks", () => {
+    assert.equal(
+      extractFirstParagraph("```\ncode\n```\n\nActual text."),
+      "Actual text.",
+    );
+  });
+});
+
 // ── loadAllFolders ───────────────────────────────────────────────
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
@@ -177,6 +224,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     fm: {},
     body: "",
     title: "Test",
+    description: "",
     date: "2026-01-01T00:00:00.000Z",
     tags: [],
     translations: [],

@@ -291,7 +291,7 @@ Toggle between modes (when explore lands) will be a UI switch + URL query; zen r
   - en mode: only `lang: en`
   - additional langs added as needed
 - Default language: `zh` (can be overridden by browser `Accept-Language` or saved preference).
-- **Translation pairing is implicit by shared ID.** The renderer scans for sibling files with the same numeric prefix but different lang. On a post page, if siblings exist, a small "Read in `<lang>`" link is rendered per sibling.
+- **Translation pairing is implicit by shared ID.** The renderer scans for sibling files with the same numeric prefix but different lang. On a post page, if a sibling exists, a link showing the sibling language's native name (e.g. "中文", "English") is rendered inline with the date. Clicking it saves that lang as the preferred language.
 - Folder listings also respect the active language filter. Folders without any posts in the active language are hidden from their parent listing.
 
 RSS is emitted per-language.

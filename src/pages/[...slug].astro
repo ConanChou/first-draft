@@ -24,6 +24,7 @@ const canonicalUrl = props.kind === "folder"
   : `${siteUrl}/${props.entry.slug}/`;
 const pageTitle = props.kind === "folder" ? props.folder.title : props.entry.title;
 const pageLang = props.kind === "folder" ? props.folder.lang : props.entry.lang;
+const pageDesc = props.kind === "post" ? props.entry.description : undefined;
 
 const folderChildren = props.kind === "folder"
   ? [...props.folder.children].sort(
@@ -36,7 +37,7 @@ const siblingEntry = props.kind === "post" && props.entry.translations[0]
   : null;
 ---
 
-<Base title={pageTitle} lang={pageLang} canonicalUrl={canonicalUrl}>
+<Base title={pageTitle} lang={pageLang} canonicalUrl={canonicalUrl} description={pageDesc}>
   {props.kind === "folder" ? (
     <div class="section-page">
       <header class="post-header">

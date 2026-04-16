@@ -15,6 +15,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     title: "On writing",
     date: "2026-04-14T12:00:00-04:00",
     tags: [],
+    description: "",
     translations: [],
     ...overrides,
   };
