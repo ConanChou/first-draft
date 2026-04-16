@@ -188,13 +188,13 @@ body {
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 600px) {
   .site-wrap { padding-top: 6.25vh; }
-  .entry-dots { opacity: 0; max-width: 0; min-width: 0; }
-  .entry-date { opacity: 0; max-width: 0; }
+  .entry-dots { display: none; }
+  .entry-date { display: none; }
 }
 
 @media (max-width: 380px) {
   .site-wrap { padding-top: 3.125vh; }
-  .entry-num { opacity: 0; max-width: 0; }
+  .entry-num { display: none; }
   .site-logo img { transform: scale(0.667); transform-origin: top left; }
 }
 
