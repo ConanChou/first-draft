@@ -170,6 +170,15 @@ const config_response =
     \\{"media-endpoint":null}
 ;
 
+// Returned for unauthenticated GET / so iA Writer can discover the micropub endpoint.
+// iA Writer fetches the domain entered in its URL field, reads <link rel="micropub">,
+// then uses that href for ?q=config and POST calls (which require auth).
+const discovery_html =
+    \\<!DOCTYPE html><html><head>
+    \\<link rel="micropub" href="https://micropub.internal">
+    \\</head><body></body></html>
+;
+
 fn handleConnection(stream: net.Stream, io: Io, config: Config, gpa: Allocator) void {
     defer {
         var s = stream;
@@ -185,11 +194,16 @@ fn handleConnection(stream: net.Stream, io: Io, config: Config, gpa: Allocator) 
     while (true) {
         var request = server.receiveHead() catch |err| switch (err) {
             error.HttpConnectionClosing => return,
+            error.HttpRequestTruncated => {
+                std.log.debug("connection closed before full request received", .{});
+                return;
+            },
             else => {
                 std.log.err("receive head: {s}", .{@errorName(err)});
                 return;
             },
         };
+        std.log.info("{s} {s}", .{ @tagName(request.head.method), request.head.target });
         serveRequest(&request, io, config, gpa) catch |err| {
             std.log.err("serve request: {s}", .{@errorName(err)});
             return;
@@ -197,42 +211,66 @@ fn handleConnection(stream: net.Stream, io: Io, config: Config, gpa: Allocator) 
     }
 }
 
+fn checkAuth(request: *http.Server.Request, token: []const u8) bool {
+    var headers = request.iterateHeaders();
+    while (headers.next()) |header| {
+        if (std.ascii.eqlIgnoreCase(header.name, "authorization")) {
+            const expected_prefix = "Bearer ";
+            if (std.mem.startsWith(u8, header.value, expected_prefix)) {
+                const provided = header.value[expected_prefix.len..];
+                return std.mem.eql(u8, provided, token);
+            }
+            return false;
+        }
+    }
+    return false;
+}
+
 fn serveRequest(request: *http.Server.Request, io: Io, config: Config, gpa: Allocator) !void {
     const target = request.head.target;
 
-    if (request.head.method == .GET and std.mem.startsWith(u8, target, "/micropub")) {
-        // GET /micropub?q=config
-        if (std.mem.indexOf(u8, target, "q=config") != null) {
-            return request.respond(config_response, .{
+    if (request.head.method == .GET) {
+        // Unauthenticated GET / — discovery page. iA Writer fetches the domain it was
+        // given, reads <link rel="micropub"> to find the endpoint, then GETs that
+        // endpoint with auth for ?q=config.
+        if (std.mem.eql(u8, target, "/") and !checkAuth(request, config.token)) {
+            return request.respond(discovery_html, .{
                 .status = .ok,
                 .extra_headers = &.{
-                    .{ .name = "content-type", .value = "application/json" },
+                    .{ .name = "content-type", .value = "text/html" },
                 },
             });
         }
-        return request.respond("Not Found", .{ .status = .not_found });
+        if (!checkAuth(request, config.token)) {
+            return request.respond("Unauthorized", .{ .status = .unauthorized });
+        }
+        // Authenticated GET — return capabilities JSON.
+        return request.respond(config_response, .{
+            .status = .ok,
+            .extra_headers = &.{
+                .{ .name = "content-type", .value = "application/json" },
+            },
+        });
     }
 
-    if (request.head.method == .POST and std.mem.eql(u8, target, "/micropub")) {
+    if (request.head.method == .POST and
+        (std.mem.eql(u8, target, "/") or std.mem.eql(u8, target, "/micropub")))
+    {
         // Verify auth
-        const auth_ok = blk: {
-            var headers = request.iterateHeaders();
-            while (headers.next()) |header| {
-                if (std.ascii.eqlIgnoreCase(header.name, "authorization")) {
-                    const expected_prefix = "Bearer ";
-                    if (std.mem.startsWith(u8, header.value, expected_prefix)) {
-                        const provided = header.value[expected_prefix.len..];
-                        break :blk std.mem.eql(u8, provided, config.token);
-                    }
-                    break :blk false;
-                }
-            }
-            break :blk false;
-        };
+        const auth_ok = checkAuth(request, config.token);
 
         if (!auth_ok) {
             return request.respond("Unauthorized", .{ .status = .unauthorized });
         }
+
+        // Copy content_type before reading body — body read overwrites recv_buf,
+        // invalidating any slices that point into it (including content_type).
+        var ct_buf: [128]u8 = undefined;
+        const content_type: ?[]const u8 = if (request.head.content_type) |ct| blk: {
+            const n = @min(ct.len, ct_buf.len);
+            @memcpy(ct_buf[0..n], ct[0..n]);
+            break :blk ct_buf[0..n];
+        } else null;
 
         // Read body
         var body_buf: [8192]u8 = undefined;
@@ -246,7 +284,7 @@ fn serveRequest(request: *http.Server.Request, io: Io, config: Config, gpa: Allo
 
         // Extract name
         var name_buf: [512]u8 = undefined;
-        const name = extractName(body, request.head.content_type, &name_buf);
+        const name = extractName(body, content_type, &name_buf);
 
         // Build publish command
         var argv_buf: [512]u8 = undefined;
@@ -264,47 +302,35 @@ fn serveRequest(request: *http.Server.Request, io: Io, config: Config, gpa: Allo
             break :blk 2;
         };
 
+        // Respond 202 immediately — publish (fetch+build+deploy) takes 20-60s,
+        // longer than iA Writer's request timeout. Client gets the ack right away;
+        // we run publish after the response is flushed.
+        var loc_buf: [256]u8 = undefined;
+        const location = try std.fmt.bufPrint(&loc_buf, "{s}/", .{config.site_url});
+        try request.respond("{}", .{
+            .status = .accepted,
+            .extra_headers = &.{
+                .{ .name = "location", .value = location },
+                .{ .name = "content-type", .value = "application/json" },
+            },
+        });
+
+        // Run publish (response already sent).
         const result = std.process.run(gpa, io, .{
             .argv = argv[0..argc],
         }) catch |err| {
             std.log.err("publish failed: {s}", .{@errorName(err)});
-            return request.respond("Internal Server Error", .{ .status = .internal_server_error });
+            return;
         };
         defer gpa.free(result.stdout);
         defer gpa.free(result.stderr);
 
         if (result.term != .exited or result.term.exited != 0) {
             std.log.err("publish exited non-zero:\n{s}", .{result.stderr});
-            const msg = if (result.stderr.len > 0) result.stderr else "publish script failed";
-            // Check for ambiguous match
-            if (std.mem.indexOf(u8, msg, "ambiguous") != null) {
-                return request.respond(
-                    \\{"error":"ambiguous"}
-                , .{
-                    .status = .bad_request,
-                    .extra_headers = &.{
-                        .{ .name = "content-type", .value = "application/json" },
-                    },
-                });
-            }
-            return request.respond("Publish failed", .{ .status = .internal_server_error });
+        } else {
+            const out = std.mem.trim(u8, result.stdout, " \t\r\n");
+            std.log.info("publish ok: {s}", .{out});
         }
-
-        // Build Location header value
-        var loc_buf: [256]u8 = undefined;
-        // Extract slug from stdout (publish prints the canonical URL on success)
-        const stdout_trimmed = std.mem.trim(u8, result.stdout, " \t\r\n");
-        const location = if (std.mem.startsWith(u8, stdout_trimmed, "http")) stdout_trimmed else blk: {
-            break :blk try std.fmt.bufPrint(&loc_buf, "{s}/", .{config.site_url});
-        };
-
-        return request.respond("", .{
-            .status = .created,
-            .extra_headers = &.{
-                .{ .name = "location", .value = location },
-            },
-            .transfer_encoding = .none,
-        });
     }
 
     return request.respond("Not Found", .{ .status = .not_found });
@@ -345,12 +371,8 @@ pub fn main(init: std.process.Init) !void {
             std.log.err("accept: {s}", .{@errorName(err)});
             continue;
         };
-        _ = try io.concurrent(handleConnectionWrapper, .{ stream, io, config, gpa });
+        handleConnection(stream, io, config, gpa);
     }
-}
-
-fn handleConnectionWrapper(stream: net.Stream, io: Io, config: Config, gpa: Allocator) Io.Cancelable!void {
-    handleConnection(stream, io, config, gpa);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

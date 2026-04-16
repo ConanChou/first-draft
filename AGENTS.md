@@ -117,7 +117,8 @@ Run linters for every language/format touched in the current change:
 | Markdown `.md` | `markdownlint-cli2` | `npx markdownlint-cli2 "**/*.md" "#node_modules"` |
 | CSS | (none yet — add `stylelint` if lint errors grow) | — |
 | Zig | `zig fmt` | `zig fmt src/` |
-| Shell scripts (bash/sh only) | `shellcheck` | `shellcheck <script>` |
+| Shell scripts (bash/sh only) | `shellcheck` | `shellcheck scripts/build scripts/deploy` |
+| Node scripts (no extension) | `node --check` | `node --check scripts/draft scripts/translate scripts/publish scripts/fetch scripts/micropub scripts/link` |
 
 Linter errors block the refactor step — fix before marking done. No `// eslint-disable` or `markdownlint-disable` without a comment explaining why.
 

@@ -377,15 +377,18 @@ MICROPUB_TOKEN="..."     # secret; registered in iA Writer once
 
 ### 9.4 Micropub server (Flow B)
 
-A tiny local HTTP service that lets iA Writer's native **Publish** menu kick off the `publish` pipeline — no terminal context switch. The server is a **signal channel**, not a content ingest. It inspects just enough of the payload to identify which file to publish, then shells out to `publish`. File renaming, front-matter rewrite, fetch, build, and deploy all happen in the CLI — the server does none of it.
+A tiny local HTTPS service that lets iA Writer's native **Publish** menu kick off the `publish` pipeline — no terminal context switch. The server is a **signal channel**, not a content ingest. It inspects just enough of the payload to identify which file to publish, then shells out to `publish`. File renaming, front-matter rewrite, fetch, build, and deploy all happen in the CLI — the server does none of it.
 
 #### Scope
 
 - **Binds** `127.0.0.1:$MICROPUB_PORT` (default `4567`). Never `0.0.0.0`.
+- **TLS**: iA Writer requires HTTPS even for local servers. Caddy runs as a reverse proxy on `micropub.internal:443`, terminates TLS using its internal CA (`caddy trust` installs the root cert into the system keychain), and forwards plain HTTP to `127.0.0.1:4567`. The Zig server speaks plain HTTP only.
+- **Local domain**: `micropub.internal` is aliased to `127.0.0.1` in `/etc/hosts`. iA Writer requires a domain-like URL, not a bare IP or `localhost`.
 - **Auth**: static bearer token `MICROPUB_TOKEN` from `.env`. Matches iA Writer's "Enter Token Manually" option — no IndieAuth / OAuth.
 - **Endpoints**:
-  - `GET /micropub?q=config` → minimal capabilities JSON. Does **not** advertise `post-status` support, so iA falls back to publish-immediately (per iA's own dialog text: *"Micropub servers that don't support this feature will publish immediately."*). This is desired — the moment iA talks to us = the moment we publish.
-  - `POST /micropub` (form-urlencoded or JSON) → treat as publish-intent signal.
+  - `GET /` (unauthenticated) → minimal HTML with `<link rel="micropub" href="https://micropub.internal">`. iA Writer fetches this page during account setup to discover the micropub endpoint.
+  - `GET /?q=config` (authenticated) → minimal capabilities JSON `{"media-endpoint":null}`. Does **not** advertise `post-status` support, so iA falls back to publish-immediately. This is desired — the moment iA talks to us = the moment we publish.
+  - `POST /micropub` (authenticated, form-urlencoded or JSON) → publish-intent signal.
 - **No draft endpoint, no update endpoint, no media endpoint** in MVP.
 
 #### Publish-intent handling
@@ -402,11 +405,37 @@ On `POST /micropub`:
 
 #### Implementation
 
-- **Language: Zig**, stdlib only. No framework (no Zap, no routing library). `std.http.Server` handles the two endpoints; `std.json` + ~20 lines of form-urlencoded parsing cover the body; `std.process.Child` shells out to `./scripts/publish`.
+- **Language: Zig**, stdlib only. No framework (no Zap, no routing library). `std.http.Server` handles the endpoints; ~20 lines of form-urlencoded parsing cover the body; `std.process.Child` shells out to `./scripts/publish`.
 - **Why Zig**: tiny binary (~100–200 KB), tiny idle footprint (2–5 MB RAM), no runtime dependency, fast cold start. Frictionless as a persistent background service.
 - **Version pin**: Zig stdlib HTTP API changes pre-1.0. Pin the exact Zig version in `build.zig.zon` so the binary stays reproducible across rebuilds.
 - **Scope**: ~150 lines of Zig in one `.zig` file. Shares no logic with the generator beyond the env file.
 - Logs to stdout/stderr; launchd captures to log paths (see below).
+
+#### TLS setup (one-time, per machine)
+
+```sh
+brew install caddy
+ln -sf ~/work/conan.one/scripts/launchd/Caddyfile /opt/homebrew/etc/Caddyfile
+brew services start caddy
+caddy trust          # installs Caddy's local CA into system keychain
+```
+
+`scripts/launchd/Caddyfile` contains:
+
+```caddy
+micropub.internal {
+    tls internal
+    reverse_proxy 127.0.0.1:4567
+}
+```
+
+Add to `/etc/hosts` (if not already present):
+
+```hosts
+127.0.0.1  micropub.internal
+```
+
+Caddy is managed by Homebrew's launchd integration (`brew services`) and restarts automatically on login — no manual steps after initial setup.
 
 #### Lifecycle (launchd)
 
@@ -423,22 +452,26 @@ All lifecycle operations go through a single multi-subcommand wrapper, `scripts/
 |------------|----------|-----------|
 | `micropub install` | copy plist to `~/Library/LaunchAgents/`, bootstrap, enable | `launchctl bootstrap gui/$UID <plist>` |
 | `micropub uninstall` | bootout, remove plist | `launchctl bootout …` |
-| `micropub start` | force one-shot launch | `launchctl start one.conan.micropub` |
-| `micropub stop` | kill current process (will respawn if KeepAlive) | `launchctl stop …` |
-| `micropub restart` | kick the running instance | `launchctl kickstart -k gui/$UID/one.conan.micropub` |
+| `micropub start` | bootstrap (loads plist + starts service) | `launchctl bootstrap gui/$UID <plist>` |
+| `micropub stop` | bootout (fully unloads; won't respawn despite KeepAlive) | `launchctl bootout …` |
+| `micropub restart` | bootout then bootstrap | `launchctl bootout … && bootstrap …` |
 | `micropub enable` | allow to run without reinstalling | `launchctl enable …` |
-| `micropub disable` | block from running, plist stays installed | `launchctl disable …` |
+| `micropub disable` | bootout + disable (blocks auto-start on next login) | `launchctl bootout … && disable …` |
 | `micropub status` | print current state + PID + port | `launchctl print …` |
-| `micropub logs` | tail `~/Library/Logs/one.conan.micropub/err.log` | `tail -f …` |
+| `micropub logs` | tail `~/Library/Logs/one.conan.micropub/err.log` | `tail -n 50 …` |
+
+Note: `launchctl stop` is intentionally **not** used — for `KeepAlive` services it sends SIGTERM but launchd immediately respawns. `bootout` fully unloads the service.
 
 `draft` CLI does **not** spawn the server. If the server isn't running when iA hits it, the POST fails — iA surfaces the error, user runs `micropub install` once, done forever. Temporary pauses (debugging, offline, travel) use `micropub disable` / `micropub enable` — no reinstall needed.
 
 #### One-time iA Writer setup
 
-Settings → Accounts → Add Micropub:
+Settings → Accounts → Add Micropub → **Enter Token Manually**:
 
-- URL: `http://localhost:4567`
+- URL: `micropub.internal`
 - Token: (paste `MICROPUB_TOKEN` from `.env`)
+
+iA Writer fetches `https://micropub.internal`, reads the `<link rel="micropub">` tag, and uses that endpoint for all subsequent calls.
 
 ---
 

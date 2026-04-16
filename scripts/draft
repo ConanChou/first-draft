@@ -43,16 +43,13 @@ if (existsSync(filePath)) {
 
 const template = [
   "---",
-  `title: ""`,
-  `date: ""`,
-  `slug: ""`,
+  `slug: `,
   `draft: true`,
   `lang: "${DEFAULT_LANG}"`,
   `tags: []`,
   "---",
   "",
   "# ",
-  "",
 ].join("\n");
 
 writeFileSync(filePath, template);

@@ -14,11 +14,15 @@
  *   logs       tail err.log
  */
 
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import { loadEnv } from "./_lib.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+
+const env = loadEnv();
+const MICROPUB_PORT = parseInt(env.MICROPUB_PORT ?? "4567", 10);
 
 const LABEL = "one.conan.micropub";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -52,6 +56,17 @@ function launchctl(...args) {
   return spawnSync("launchctl", args, { stdio: "inherit", encoding: "utf-8" });
 }
 
+/** Kill any process listening on the micropub port (fallback for manual runs). */
+function killByPort(port) {
+  const r = spawnSync("lsof", ["-ti", `tcp:${port}`], { encoding: "utf-8" });
+  const pids = (r.stdout ?? "").trim().split("\n").filter(Boolean);
+  for (const pid of pids) {
+    spawnSync("kill", [pid], { stdio: "inherit" });
+    process.stdout.write(`killed pid ${pid} on port ${port}\n`);
+  }
+  return pids.length > 0;
+}
+
 function cmd(subcommand, extraArgs) {
   switch (subcommand) {
     case "install": {
@@ -66,7 +81,8 @@ function cmd(subcommand, extraArgs) {
       const plistContent = readFileSync(PLIST_SRC, "utf-8")
         .replace(/MICROPUB_SERVER_BIN/g, SERVER_BIN)
         .replace(/CONAN_ONE_ROOT/g, ROOT)
-        .replace(/LOG_DIR/g, LOG_DIR);
+        .replace(/LOG_DIR/g, LOG_DIR)
+        .replace(/SHELL_PATH/g, process.env.PATH ?? "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin");
       writeFileSync(PLIST_DEST, plistContent, "utf-8");
       const r = launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
       if (r.status !== 0) {
@@ -86,18 +102,33 @@ function cmd(subcommand, extraArgs) {
       break;
     }
     case "start":
-      launchctl("start", LABEL);
+      // bootstrap re-loads the plist and starts the service
+      if (!existsSync(PLIST_DEST)) {
+        process.stderr.write(`plist not installed — run 'micropub install' first\n`);
+        process.exit(1);
+      }
+      launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
       break;
-    case "stop":
-      launchctl("stop", LABEL);
+    case "stop": {
+      // bootout fully unloads (respects KeepAlive — won't respawn)
+      const r = launchctl("bootout", `gui/${UID}`, PLIST_DEST);
+      if (r.status !== 0) {
+        // Not launchd-managed — kill by port
+        if (!killByPort(MICROPUB_PORT))
+          process.stdout.write("no process found\n");
+      }
       break;
+    }
     case "restart":
-      launchctl("kickstart", "-k", SERVICE_TARGET);
+      launchctl("bootout", `gui/${UID}`, PLIST_DEST);
+      launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
       break;
     case "enable":
       launchctl("enable", SERVICE_TARGET);
       break;
     case "disable":
+      // bootout stops + unloads; disable prevents auto-start on next login
+      launchctl("bootout", `gui/${UID}`, PLIST_DEST);
       launchctl("disable", SERVICE_TARGET);
       break;
     case "status":
@@ -124,4 +155,4 @@ if (!subcommand || subcommand === "--help" || subcommand === "-h") {
   process.exit(subcommand ? 0 : 1);
 }
 
-await cmd(subcommand, rest);
+cmd(subcommand, rest);
