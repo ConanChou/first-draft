@@ -141,19 +141,20 @@ Reverse-chronological by `date` (front matter).
 | Top-level file `0042-on-writing.md` (zh) | `/0042-on-writing/` |
 | Translation `0042-writing-well.en.md` | `/0042-writing-well/` |
 | Folder `sketch/` | `/sketch/` |
-| File inside folder `sketch/0051-studio.md` | `/sketch/0051-studio/` |
+| File inside folder `sketch/0051-studio.md` | `/0051-studio/` |
 | Shortcut by ID | `/0042` → canonical URL of the active-lang version |
 | Tag page | `/tags/writing/` |
 | Tag index | `/tags/` |
 | RSS per language | `/feed.zh.xml`, `/feed.en.xml` |
 
 - Clean URLs, no `.html` extension in canonical path.
+- **Flat URL space**: IDs are globally unique across all folders, so sub-folder files use the same flat `/{slug}/` scheme as top-level files. The folder provides organizational structure on disk and in listings, but is not part of the URL.
 - Lang is **not** in the URL path. Each lang version has its own slug and its own URL. Active lang switch filters listings; direct URLs always work regardless of current switch state.
 - `/0042` short form resolves to the canonical slug URL of the active-lang version. If the active lang has no version of this ID, falls back to `DEFAULT_LANG`.
 
 ### 5.2 Per-page output formats
 
-Every post, folder, and home page emits **three sibling files** from one source:
+Every post and folder emits **four sibling files** from one source. The home page emits the same minus `.json`.
 
 | Extension | Content | Audience |
 |-----------|---------|----------|
@@ -161,10 +162,12 @@ Every post, folder, and home page emits **three sibling files** from one source:
 | `/slug.html` | same HTML, explicit-extension alias | humans who type it |
 | `/slug.md` | clean markdown (see §5.3) | bots, LLMs, quoters |
 | `/slug.partial.html` | rendered body HTML, no layout, stable container | explore-mode shell (Phase 2) |
+| `/slug.json` | structured metadata (see §5.4) | explore-mode shell, API consumers |
 
 - `<link rel="canonical">` always points to the clean form (`/slug/`).
 - `.html` and `/slug/index.html` are byte-identical.
-- GH Pages serves all four as static files; directory `slug/` and sibling files `slug.html` / `slug.md` / `slug.partial.html` coexist without conflict.
+- GH Pages serves all five as static files; directory `slug/` and sibling files coexist without conflict.
+- `.json` is not emitted for the home page — the listing is already in `index.partial.html`.
 
 ### 5.3 `.md` output shape
 
@@ -180,7 +183,7 @@ The `.md` endpoint is a **consumption artifact**, not a raw source dump. Front m
 See also [my earlier note](/0038-first-steps.md)…
 
 ---
-*Source: https://conan.one/0042-on-writing/*
+*[← Index](/index.md) · Source: https://conan.one/0042-on-writing/*
 ```
 
 - `# Title` — from front matter `title`.
@@ -205,18 +208,53 @@ Folder intro prose (from `index.md` body, if present).
 
 ## Entries
 
-- [0051 Studio notes](/sketch/0051-studio.md) — 2026-04-10
-- [0048 On drawing](/sketch/0048-on-drawing.md) — 2026-04-08
+- [0051 Studio notes](/0051-studio.md) — 2026-04-10
+- [0048 On drawing](/0048-on-drawing.md) — 2026-04-08
 
 ---
-*Source: https://conan.one/sketch/*
+*[← Index](/index.md) · Source: https://conan.one/sketch/*
 ```
 
-- If the folder has no `index.md`, drop the title + meta + intro prose; keep only the `## Entries` list and `Source:` line. Title falls back to folder name.
+- If the folder has no `index.md`, drop the title + meta + intro prose; keep only the `## Entries` list and footer. Title falls back to folder name.
+- Entry links use flat URLs (see §5.1) — `/0051-studio.md`, not `/sketch/0051-studio.md`.
+- Footer includes `[← Index](/index.md)` for discoverability from any entry point.
 - Entries list is reverse-chronological, same as the HTML listing.
 - Active-language filtering is **not** applied to the `.md` output — bots should see all content regardless of a human's UI switch.
 
 **Deliberately excluded fields from `.md`:** `slug` (in URL), `draft` (always false if published), full ISO timestamp (date-only is enough for reading; the canonical HTML keeps the full ISO in `<time datetime>`). A future `/slug.src.md` endpoint can expose the raw source with full front matter if a real need appears — not part of MVP.
+
+### 5.4 `.json` output shape
+
+The `.json` endpoint exposes structured metadata for the explore-mode shell and other API consumers. It is emitted for posts and folders only (not the home page).
+
+**Post `.json`:**
+
+```json
+{
+  "id": "0042",
+  "title": "On writing well",
+  "date": "2026-04-14T12:00:00-04:00",
+  "lang": "zh",
+  "tags": ["writing", "craft"],
+  "slug": "0042-on-writing-well"
+}
+```
+
+**Folder `.json`:**
+
+```json
+{
+  "title": "Sketch",
+  "date": "2026-04-10T00:00:00Z",
+  "lang": "zh",
+  "tags": [],
+  "slug": "sketch"
+}
+```
+
+- `date` is the full ISO 8601 timestamp with offset (unlike `.md` which uses date-only).
+- `id` is omitted from folders (folders have no numeric ID).
+- Body content is not included — use `.partial.html` for that.
 
 ---
 
