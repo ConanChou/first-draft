@@ -47,6 +47,7 @@ const template = [
   `draft: true`,
   `lang: "${DEFAULT_LANG}"`,
   `tags: []`,
+  `desc: ""`,
   "---",
   "",
   "# ",
