@@ -295,7 +295,6 @@ body {
   font-feature-settings: "tnum", "onum";
   width: 4ch;
   overflow: hidden;
-  transform: translateY(-0.03em);
   transition: color 0.1s ease-in-out;
 }
 
@@ -336,9 +335,16 @@ body {
   font-family: var(--font-serif);
   font-variant-numeric: tabular-nums oldstyle-nums;
   font-feature-settings: "tnum", "onum";
-  /* Oldstyle numerals read slightly high next to the title and dot leader. */
-  transform: translateY(0.04em);
   transition: color 0.1s ease-in-out;
+}
+
+li[data-lang="zh"] .entry-num {
+  transform: translateY(-0.03em);
+}
+
+li[data-lang="zh"] .entry-date {
+  /* Oldstyle numerals read slightly high next to CJK-heavy titles and dot leader. */
+  transform: translateY(0.04em);
 }
 
 /* ── Post ───────────────────────────────────────────────── */
