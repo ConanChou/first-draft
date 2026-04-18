@@ -318,12 +318,10 @@ body {
   align-self: center;
   height: 3px;
   min-width: 1em;
-  /* Nudge to optical center (roughly x-height midpoint), not line-box center. */
-  transform: translateY(0.1em);
   background-image: radial-gradient(circle, var(--item-color) 1.2px, transparent 1.6px);
   background-size: 8px 3px;
-  background-repeat: repeat-x;
-  overflow: hidden;
+  background-position: left center;
+  background-repeat: space no-repeat;
   transition: background-image 0.1s ease-in-out;
 }
 
@@ -340,6 +338,16 @@ body {
 
 li[data-lang="zh"] .entry-num {
   transform: translateY(-0.03em);
+}
+
+li[data-lang="zh"] .entry-dots {
+  /* Nudge to optical center (roughly x-height midpoint), not line-box center. */
+  transform: translateY(0.12em);
+}
+
+li[data-lang="en"] .entry-dots {
+  /* Nudge to optical center (roughly x-height midpoint), not line-box center. */
+  transform: translateY(0.1em);
 }
 
 li[data-lang="zh"] .entry-date {
