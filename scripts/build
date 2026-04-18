@@ -1,5 +1,13 @@
 #!/bin/sh
 # build — thin wrapper around `pnpm build`
 set -e
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  echo "Usage: build"
+  echo ""
+  echo "  Thin wrapper around pnpm build."
+  exit 0
+fi
+
 cd "$(dirname "$0")/.."
 pnpm build

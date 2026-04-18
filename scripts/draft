@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * draft [folder]
+ * draft [--lang <code>] [folder]
  *
  * Allocates the next numeric ID, creates NNNN.md in the iA Writer library,
  * and opens it in iA Writer.
  *
- * folder — path relative to IA_WRITER_PATH (default: library root)
+ * --lang   language code (default: zh); non-default langs add .lang suffix
+ * folder   path relative to IA_WRITER_PATH (default: library root)
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -13,8 +14,17 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadEnv, scanMaxId } from "./_lib.mjs";
 
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  process.stdout.write(
+    "Usage: draft [--lang <code>] [folder]\n\n" +
+    "  --lang <code>  language code (default: zh); non-default langs add .lang suffix\n" +
+    "  folder         subdirectory relative to IA_WRITER_PATH\n"
+  );
+  process.exit(0);
+}
+
 const env = loadEnv();
-const IA_PATH = env.IA_WRITER_PATH;
+const IA_PATH = "IA_WRITER_PATH" in process.env ? process.env.IA_WRITER_PATH : (env.IA_WRITER_PATH ?? "");
 const DEFAULT_LANG = env.DEFAULT_LANG ?? "zh";
 
 if (!IA_PATH) {
@@ -26,14 +36,30 @@ if (!existsSync(IA_PATH)) {
   process.exit(1);
 }
 
-const folder = process.argv[2] ?? "";
+const args = process.argv.slice(2);
+let lang = null;
+const rest = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--lang") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --lang requires a value");
+      process.exit(1);
+    }
+    lang = args[++i];
+  } else {
+    rest.push(args[i]);
+  }
+}
+const folder = rest[0] ?? "";
+const effectiveLang = lang ?? DEFAULT_LANG;
 const targetDir = folder ? join(IA_PATH, folder) : IA_PATH;
 
 mkdirSync(targetDir, { recursive: true });
 
 const maxId = scanMaxId(IA_PATH);
 const nextId = String(maxId + 1).padStart(4, "0");
-const filename = `${nextId}.md`;
+const langSuffix = effectiveLang !== DEFAULT_LANG ? `.${effectiveLang}` : "";
+const filename = `${nextId}${langSuffix}.md`;
 const filePath = join(targetDir, filename);
 
 if (existsSync(filePath)) {
@@ -45,7 +71,7 @@ const template = [
   "---",
   `slug: `,
   `draft: true`,
-  `lang: "${DEFAULT_LANG}"`,
+  `lang: "${effectiveLang}"`,
   `tags: []`,
   `desc: ""`,
   "---",

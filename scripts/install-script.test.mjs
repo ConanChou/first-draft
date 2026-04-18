@@ -127,4 +127,16 @@ describe("install-script", () => {
       assert.match(e.stderr, /usage/i);
     });
   });
+
+  describe("--help / -h", () => {
+    it("--help prints usage and exits 0", () => {
+      const out = run(["--help"], tmp);
+      assert.match(out, /usage.*install-script/i);
+    });
+
+    it("-h prints usage and exits 0", () => {
+      const out = run(["-h"], tmp);
+      assert.match(out, /usage.*install-script/i);
+    });
+  });
 });

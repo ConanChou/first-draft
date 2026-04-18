@@ -12,6 +12,15 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { ROOT } from "./_lib.mjs";
 
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  process.stdout.write(
+    "Usage: fetch\n\n" +
+    "  Verifies or creates the src/content → IA_WRITER_PATH symlink.\n" +
+    "  Called automatically by publish.\n"
+  );
+  process.exit(0);
+}
+
 const linkPath = join(ROOT, "src", "content");
 
 let stat = null;

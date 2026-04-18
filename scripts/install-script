@@ -70,7 +70,16 @@ function uninstallOne(name) {
   console.log(`uninstalled: ${link}`);
 }
 
+const USAGE = "Usage: install-script install [name]\n       install-script uninstall [name]\n\n" +
+  "  install [name]    create symlink(s) in ~/.local/bin\n" +
+  "  uninstall [name]  remove symlink(s) from ~/.local/bin\n";
+
 const [cmd, name] = process.argv.slice(2);
+
+if (cmd === "--help" || cmd === "-h") {
+  process.stdout.write(USAGE);
+  process.exit(0);
+}
 
 if (cmd === "install") {
   if (name) {
@@ -87,6 +96,6 @@ if (cmd === "install") {
     for (const n of installableNames()) uninstallOne(n);
   }
 } else {
-  process.stderr.write("Usage: install-script install [name]\n       install-script uninstall [name]\n");
+  process.stderr.write(USAGE);
   process.exit(1);
 }

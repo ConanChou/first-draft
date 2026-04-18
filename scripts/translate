@@ -14,6 +14,16 @@ import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadEnv, findById } from "./_lib.mjs";
 
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  process.stdout.write(
+    "Usage: translate <id> --lang <code> [--folder <path>]\n\n" +
+    "  <id>           numeric ID of the source piece\n" +
+    "  --lang <code>  required — target language code (e.g. en, ja)\n" +
+    "  --folder       path relative to IA_WRITER_PATH (default: same folder as source)\n"
+  );
+  process.exit(0);
+}
+
 const args = process.argv.slice(2);
 let id = null;
 let lang = null;

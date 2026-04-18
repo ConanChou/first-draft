@@ -2,6 +2,13 @@
 # deploy — force-push dist/ to the public static-site repo
 set -e
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  echo "Usage: deploy"
+  echo ""
+  echo "  Force-push dist/ to the public static-site repo (PUBLIC_REPO in .env)."
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$SCRIPT_DIR/.."
 

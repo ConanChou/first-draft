@@ -26,6 +26,18 @@ import {
 } from "./_lib.mjs";
 
 // ── Parse CLI args ────────────────────────────────────────────────
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  process.stdout.write(
+    "Usage: publish <id-or-path> [--lang <code>] [--tz <zone>] [--title <name>] [--latest-draft]\n\n" +
+    "  <id-or-path>    numeric ID or file path of the draft to publish\n" +
+    "  --lang <code>   disambiguate when ID has multiple lang versions\n" +
+    "  --tz <zone>     timezone for date stamp (IANA name or \"local\")\n" +
+    "  --title <name>  find draft by matching its first # heading (Micropub flow)\n" +
+    "  --latest-draft  publish the most recently modified draft\n"
+  );
+  process.exit(0);
+}
+
 const args = process.argv.slice(2);
 let target = null;
 let lang = null;
