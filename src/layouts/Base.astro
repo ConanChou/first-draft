@@ -78,11 +78,11 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
     </footer>
 
     <script>
+      import { shouldHandleFootnoteItemClick } from "../lib/footnote-nav.js";
+
       // ── Footnote / sidenote behavior ───────────────────────────────────
       (function () {
         const SIDENOTE_MIN_WIDTH = 1060;
-        let lastFootnoteScrollY = 0;
-
         function isSidenoteMode(): boolean {
           return window.innerWidth >= SIDENOTE_MIN_WIDTH;
         }
@@ -149,25 +149,29 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
         }
 
         function initFootnotes() {
-          // Smooth scroll: ref → footnote (narrow mode)
+          // Narrow mode: ref → footnote
           document.querySelectorAll<HTMLAnchorElement>(".fn-ref a").forEach((link) => {
             link.addEventListener("click", (e) => {
               if (isSidenoteMode()) return;
               const href = link.getAttribute("href");
               if (!href) return;
               e.preventDefault();
-              lastFootnoteScrollY = window.scrollY;
-              const target = document.querySelector<HTMLElement>(href);
-              target?.scrollIntoView({ behavior: "smooth", block: "center" });
+              document.querySelector<HTMLElement>(href)?.scrollIntoView({ behavior: "smooth", block: "center" });
             });
           });
 
-          // Smooth scroll back: ↩ → reading position (narrow mode)
-          document.querySelectorAll<HTMLAnchorElement>(".fn-back").forEach((link) => {
-            link.addEventListener("click", (e) => {
+          // Narrow mode: footnote item → back to ref (lands at top 1/3 of viewport)
+          document.querySelectorAll<HTMLElement>(".footnote-item").forEach((item) => {
+            item.addEventListener("click", (e) => {
               if (isSidenoteMode()) return;
+              if (!shouldHandleFootnoteItemClick(e.target)) return;
               e.preventDefault();
-              window.scrollTo({ top: lastFootnoteScrollY, behavior: "smooth" });
+              const n = item.id.match(/^fn-(\d+)$/)?.[1];
+              if (!n) return;
+              const ref = document.querySelector<HTMLElement>(`#fnref-${n}`);
+              if (!ref) return;
+              const top = ref.getBoundingClientRect().top + window.scrollY - window.innerHeight / 3;
+              window.scrollTo({ top, behavior: "smooth" });
             });
           });
 
