@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ props }) => {
 
   if (p.kind === "post") {
     const { entry } = p;
-    const bodyHtml = await renderMd(entry.body);
+    const bodyHtml = await renderMd(entry.body, entry.lang);
     const tagsHtml = entry.tags.length > 0
       ? `<div class="post-tags">${entry.tags.map((t) => `<a href="/tags/${escHtml(t)}/">#${escHtml(t)}</a>`).join("")}</div>`
       : "";
@@ -28,7 +28,7 @@ ${tagsHtml}
 </article>`;
   } else {
     const { folder } = p;
-    const introHtml = folder.intro ? await renderMd(folder.intro) : "";
+    const introHtml = folder.intro ? await renderMd(folder.intro, folder.lang) : "";
     const children = [...folder.children].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );

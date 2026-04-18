@@ -27,6 +27,25 @@ export function rewriteHashtagsMd(md: string): string {
   );
 }
 
+/**
+ * Prepend a Δ NNNN sigil to any anchor pointing to an internal post path
+ * (/NNNN, /NNNN-slug, /NNNN.html, /NNNN/, /NNNN#hash). Idempotent.
+ */
+export function rewriteDeltaMentions(html: string): string {
+  const THIN = "\u2009"; // thin space between Δ and digits
+  const NBSP = "\u00A0"; // non-breaking space between sigil and title
+  const DELTA_OPEN = `<span class="delta">`;
+  // href may appear anywhere in the attribute list, not necessarily first.
+  const ANCHOR_RE =
+    /<a\b([^>]*?)href="(\/(\d{4})(?:[-./#][^"]*)?)"([^>]*?)>([\s\S]*?)<\/a>/g;
+  return html.replace(ANCHOR_RE, (whole, pre, href, id, post, inner) => {
+    if (inner.startsWith(DELTA_OPEN)) return whole; // already rewritten
+    const sigil = `${DELTA_OPEN}Δ${THIN}${id}</span>`;
+    const body = inner === id ? sigil : `${sigil}${NBSP}${inner}`;
+    return `<a${pre}href="${href}"${post}>${body}</a>`;
+  });
+}
+
 /** Rewrite internal HTML links to .md siblings */
 export function rewriteInternalLinksMd(md: string): string {
   // e.g. [text](/0042-some-post/) → [text](/0042-some-post.md)

@@ -48,7 +48,7 @@ export async function getStaticPaths() {
       params: { slug: entry.slug },
       props: {
         kind: "post" as const,
-        entry: { ...entry, bodyHtml: await renderMd(entry.body) } as RouteEntry,
+        entry: { ...entry, bodyHtml: await renderMd(entry.body, entry.lang) } as RouteEntry,
         siteUrl,
       },
     })),
@@ -61,7 +61,7 @@ export async function getStaticPaths() {
         kind: "folder" as const,
         folder: {
           ...folder,
-          introHtml: folder.intro ? await renderMd(folder.intro) : undefined,
+          introHtml: folder.intro ? await renderMd(folder.intro, folder.lang) : undefined,
         } as FolderRouteEntry,
         siteUrl,
       },

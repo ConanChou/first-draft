@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+/**
+ * install-script install [name]
+ * install-script uninstall [name]
+ *
+ * Manages ~/.local/bin symlinks for conan.one scripts.
+ * BIN_DIR env var overrides the target directory (used in tests).
+ */
+
+import { symlinkSync, unlinkSync, existsSync, lstatSync, readdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
+const HOME = process.env.HOME;
+if (!process.env.BIN_DIR && !HOME) {
+  process.stderr.write("Error: HOME unset and BIN_DIR not provided\n");
+  process.exit(1);
+}
+const BIN_DIR = process.env.BIN_DIR ?? join(HOME, ".local", "bin");
+
+// Scripts that should NOT be linked (internal / non-executable)
+const EXCLUDE = new Set([
+  "_lib.mjs",
+  "install-script",
+  "install-script.test.mjs",
+  "micropub-server",   // directory
+]);
+
+function installableNames() {
+  return readdirSync(SCRIPTS_DIR).filter((f) => {
+    if (EXCLUDE.has(f)) return false;
+    if (f.endsWith(".mjs") || f.endsWith(".ts")) return false;
+    const stat = lstatSync(join(SCRIPTS_DIR, f));
+    return stat.isFile();
+  });
+}
+
+function assertKnown(name) {
+  if (!installableNames().includes(name)) {
+    process.stderr.write(`Error: unknown script "${name}"\n`);
+    process.exit(1);
+  }
+}
+
+function installOne(name) {
+  const target = join(SCRIPTS_DIR, name);
+  const link = join(BIN_DIR, name);
+  let stat = null;
+  try { stat = lstatSync(link); } catch { /* doesn't exist */ }
+  if (stat?.isSymbolicLink()) unlinkSync(link); // replace stale
+  else if (stat) {
+    process.stderr.write(`Error: ${link} exists and is not a symlink — remove it manually\n`);
+    process.exit(1);
+  }
+  symlinkSync(target, link);
+  console.log(`installed: ${link} → ${target}`);
+}
+
+function uninstallOne(name) {
+  const link = join(BIN_DIR, name);
+  let stat = null;
+  try { stat = lstatSync(link); } catch { /* doesn't exist */ }
+  if (!stat) return; // already gone — idempotent
+  if (!stat.isSymbolicLink()) {
+    process.stderr.write(`Error: ${link} is not a symlink — remove it manually\n`);
+    process.exit(1);
+  }
+  unlinkSync(link);
+  console.log(`uninstalled: ${link}`);
+}
+
+const [cmd, name] = process.argv.slice(2);
+
+if (cmd === "install") {
+  if (name) {
+    assertKnown(name);
+    installOne(name);
+  } else {
+    for (const n of installableNames()) installOne(n);
+  }
+} else if (cmd === "uninstall") {
+  if (name) {
+    assertKnown(name);
+    uninstallOne(name);
+  } else {
+    for (const n of installableNames()) uninstallOne(n);
+  }
+} else {
+  process.stderr.write("Usage: install-script install [name]\n       install-script uninstall [name]\n");
+  process.exit(1);
+}

@@ -42,9 +42,22 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
     <link rel="alternate" type="application/rss+xml" title="conan.one (en)" href="/feed.en.xml" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Typography: Source Serif 4 (prose), Inter (UI), Noto Serif/Sans SC (CJK) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400;1,8..60,500;1,8..60,700&family=Inter:wght@400;500;700&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+    />
+
     <ClientRouter />
   </head>
   <body>
+    <div class="header-blur" aria-hidden="true">
+      <div></div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+
     <a href="/" class="site-logo">
       <img src="/logo.svg" alt="conan.one" width="40" height="40" />
     </a>
@@ -54,10 +67,122 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
         <slot />
       </main>
 
-      <footer class="site-footer">
-        <span style="margin-left: auto">© {new Date().getFullYear()} Conan</span>
-      </footer>
     </div>
+
+    <div class="footer-blur" aria-hidden="true">
+      <div></div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+
+    <footer class="site-footer">
+      <span style="margin-left: auto">© {new Date().getFullYear()} Conan</span>
+    </footer>
+
+    <script>
+      // ── Footnote / sidenote behavior ───────────────────────────────────
+      (function () {
+        const SIDENOTE_MIN_WIDTH = 1060;
+        let lastFootnoteScrollY = 0;
+
+        function isSidenoteMode(): boolean {
+          return window.innerWidth >= SIDENOTE_MIN_WIDTH;
+        }
+
+        function getOffsetFromParent(el: HTMLElement, parent: HTMLElement): number {
+          const parentRect = parent.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          return elRect.top - parentRect.top;
+        }
+
+        function buildSidenotes() {
+          const postBody = document.querySelector<HTMLElement>(".post-body");
+          if (!postBody) return;
+
+          // Remove previous sidenotes
+          postBody.querySelectorAll(".sidenote").forEach((s) => s.remove());
+
+          if (!isSidenoteMode()) return;
+
+          const items = document.querySelectorAll<HTMLElement>(".footnote-item");
+          if (!items.length) return;
+
+          let prevBottom = -Infinity;
+
+          items.forEach((item) => {
+            const idMatch = item.id.match(/^fn-(\d+)$/);
+            if (!idMatch) return;
+            const n = idMatch[1];
+            const ref = document.querySelector<HTMLElement>(`#fnref-${n}`);
+            if (!ref) return;
+
+            const contentEl = item.querySelector<HTMLElement>(".footnote-content");
+            const content = contentEl?.innerHTML ?? "";
+
+            const sn = document.createElement("aside");
+            sn.className = "sidenote";
+            sn.id = `sn-${n}`;
+            sn.setAttribute("aria-label", `Footnote ${n}`);
+            sn.innerHTML = `<span class="sidenote-num">${n}.</span> ${content}`;
+
+            postBody.appendChild(sn);
+
+            let top = getOffsetFromParent(ref, postBody);
+            if (top < prevBottom + 8) top = prevBottom + 8;
+            sn.style.top = `${top}px`;
+            prevBottom = top + sn.getBoundingClientRect().height;
+
+            // Hover cross-highlight
+            sn.addEventListener("mouseenter", () => {
+              sn.classList.add("sn-highlight");
+              ref.classList.add("sn-active");
+            });
+            sn.addEventListener("mouseleave", () => {
+              sn.classList.remove("sn-highlight");
+              ref.classList.remove("sn-active");
+            });
+            ref.addEventListener("mouseenter", () => {
+              sn.classList.add("sn-highlight");
+            });
+            ref.addEventListener("mouseleave", () => {
+              sn.classList.remove("sn-highlight");
+            });
+          });
+        }
+
+        function initFootnotes() {
+          // Smooth scroll: ref → footnote (narrow mode)
+          document.querySelectorAll<HTMLAnchorElement>(".fn-ref a").forEach((link) => {
+            link.addEventListener("click", (e) => {
+              if (isSidenoteMode()) return;
+              const href = link.getAttribute("href");
+              if (!href) return;
+              e.preventDefault();
+              lastFootnoteScrollY = window.scrollY;
+              const target = document.querySelector<HTMLElement>(href);
+              target?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          });
+
+          // Smooth scroll back: ↩ → reading position (narrow mode)
+          document.querySelectorAll<HTMLAnchorElement>(".fn-back").forEach((link) => {
+            link.addEventListener("click", (e) => {
+              if (isSidenoteMode()) return;
+              e.preventDefault();
+              window.scrollTo({ top: lastFootnoteScrollY, behavior: "smooth" });
+            });
+          });
+
+          buildSidenotes();
+        }
+
+        let resizeTimer: ReturnType<typeof setTimeout>;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(buildSidenotes, 120);
+        });
+
+        document.addEventListener("astro:page-load", initFootnotes);
+      })();
+    </script>
 
     <script>
       const STORAGE_KEY = "preferred-lang";

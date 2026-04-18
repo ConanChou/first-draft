@@ -4,6 +4,7 @@ import {
   rewriteHashtagsHtml,
   rewriteHashtagsMd,
   rewriteInternalLinksMd,
+  rewriteDeltaMentions,
 } from "./markdown.js";
 
 // ── rewriteHashtagsHtml ──────────────────────────────────────────
@@ -98,5 +99,92 @@ describe("rewriteInternalLinksMd", () => {
   it("preserves hash anchor", () => {
     const out = rewriteInternalLinksMd("[note](/0042-post/#section)");
     assert.ok(out.includes("(/0042-post.md#section)"));
+  });
+});
+
+// ── rewriteDeltaMentions ─────────────────────────────────────────
+
+describe("rewriteDeltaMentions", () => {
+  it("prepends Δ sigil to titled internal link", () => {
+    const out = rewriteDeltaMentions(
+      `<p>see <a href="/0042">On writing well</a> for context</p>`,
+    );
+    assert.ok(
+      out.includes(
+        `<a href="/0042"><span class="delta">Δ\u20090042</span>\u00A0On writing well</a>`,
+      ),
+      out,
+    );
+  });
+
+  it("replaces bare ID link text with Δ sigil", () => {
+    const out = rewriteDeltaMentions(
+      `<p>see <a href="/0042">0042</a></p>`,
+    );
+    assert.ok(
+      out.includes(
+        `<a href="/0042"><span class="delta">Δ\u20090042</span></a>`,
+      ),
+      out,
+    );
+  });
+
+  it("works with slug href", () => {
+    const out = rewriteDeltaMentions(
+      `<p><a href="/0042-on-writing-well">On writing well</a></p>`,
+    );
+    assert.ok(out.includes(`<span class="delta">Δ\u20090042</span>`), out);
+  });
+
+  it("works with .html suffix", () => {
+    const out = rewriteDeltaMentions(
+      `<p><a href="/0042.html">title</a></p>`,
+    );
+    assert.ok(out.includes(`<span class="delta">Δ\u20090042</span>`), out);
+  });
+
+  it("works with hash anchor", () => {
+    const out = rewriteDeltaMentions(
+      `<p><a href="/0042/#intro">title</a></p>`,
+    );
+    assert.ok(out.includes(`<span class="delta">Δ\u20090042</span>`), out);
+  });
+
+  it("ignores external URLs", () => {
+    const input = `<p><a href="https://example.com/0042">x</a></p>`;
+    assert.equal(rewriteDeltaMentions(input), input);
+  });
+
+  it("ignores non-ID paths", () => {
+    const input = `<p><a href="/about">about</a></p>`;
+    assert.equal(rewriteDeltaMentions(input), input);
+  });
+
+  it("ignores 5-digit paths", () => {
+    const input = `<p><a href="/00423-foo">x</a></p>`;
+    assert.equal(rewriteDeltaMentions(input), input);
+  });
+
+  it("is idempotent", () => {
+    const once = rewriteDeltaMentions(
+      `<p><a href="/0042">title</a></p>`,
+    );
+    const twice = rewriteDeltaMentions(once);
+    assert.equal(twice, once);
+  });
+
+  it("handles multiple mentions in one string", () => {
+    const out = rewriteDeltaMentions(
+      `<p><a href="/0042">a</a> and <a href="/0099">b</a></p>`,
+    );
+    assert.ok(out.includes("Δ\u20090042"), out);
+    assert.ok(out.includes("Δ\u20090099"), out);
+  });
+
+  it("matches anchor when href is not the first attribute", () => {
+    const out = rewriteDeltaMentions(
+      `<p><a class="x" href="/0042">title</a></p>`,
+    );
+    assert.ok(out.includes("Δ\u20090042"), out);
   });
 });

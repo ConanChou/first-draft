@@ -7,9 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "node --test scripts/_lib.test.mjs scripts/micropub.test.mjs && node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts src/lib/md-output.test.ts src/lib/json-output.test.ts",
+    "test": "node --test scripts/_lib.test.mjs scripts/micropub.test.mjs && node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts src/lib/footnotes.test.ts src/lib/md-output.test.ts src/lib/json-output.test.ts",
     "test:scripts": "node --test scripts/_lib.test.mjs scripts/micropub.test.mjs",
-    "test:lib": "node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts src/lib/md-output.test.ts src/lib/json-output.test.ts",
+    "test:lib": "node --import tsx/esm --test src/lib/content.test.ts src/lib/markdown.test.ts src/lib/render.test.ts src/lib/footnotes.test.ts src/lib/md-output.test.ts src/lib/json-output.test.ts",
     "test:zig": "cd scripts/micropub-server && zig build test --summary all"
   },
   "dependencies": {
