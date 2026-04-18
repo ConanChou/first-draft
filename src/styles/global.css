@@ -268,7 +268,7 @@ body {
   --item-color: var(--color-muted);
   font-size: 1.1rem;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
   padding: 0.15rem 0.5rem;
   border-radius: 0.3em;
@@ -295,6 +295,7 @@ body {
   font-feature-settings: "tnum", "onum";
   width: 4ch;
   overflow: hidden;
+  transform: translateY(-0.03em);
   transition: color 0.1s ease-in-out;
 }
 
@@ -335,6 +336,8 @@ body {
   font-family: var(--font-serif);
   font-variant-numeric: tabular-nums oldstyle-nums;
   font-feature-settings: "tnum", "onum";
+  /* Oldstyle numerals read slightly high next to the title and dot leader. */
+  transform: translateY(0.04em);
   transition: color 0.1s ease-in-out;
 }
 
@@ -560,15 +563,15 @@ body {
 @media (max-width: 600px) {
   body { padding: 0 0.2rem 4rem; }
   .site-wrap { padding-top: 4.5em; }
-  .entry-dots { display: none; }
-  .entry-date { display: none; }
+  /* .entry-dots { display: none; } */
+  /* .entry-date { display: none; } */
   .header-blur { height: 3rem; }
   .post-header { margin-bottom: 1.5rem; }
 }
 
 @media (max-width: 380px) {
   .site-wrap { padding-top: 3.5em; }
-  .entry-num { display: none; }
+  /* .entry-num { display: none; } */
   .site-logo img { transform: scale(0.667); transform-origin: top left; }
   .header-blur { height: 3rem; }
   .post-header { margin-bottom: 1rem; }
