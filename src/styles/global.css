@@ -27,7 +27,7 @@
     "Liberation Mono", "Courier New", monospace;
 
   --content-width:    700px;
-  --font-size-base:   21px;
+  --font-size-base:   clamp(19px, 1.25vw + 12.25px, 21px);
   --line-height-base: 1.8;
 
   /* Modular scale */
@@ -62,7 +62,7 @@ html {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background: var(--color-bg);
-  font-feature-settings: "kern", "liga", "onum";
+  font-feature-settings: "kern", "liga", "onum", "halt" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -338,22 +338,6 @@ body {
   transition: color 0.1s ease-in-out;
 }
 
-/* ── Responsive ─────────────────────────────────────────── */
-@media (max-width: 600px) {
-  body { padding: 0 0.2rem 4rem; }
-  .site-wrap { padding-top: 4em; }
-  .entry-dots { display: none; }
-  .entry-date { display: none; }
-  .header-blur { height: 3rem; }
-}
-
-@media (max-width: 380px) {
-  .site-wrap { padding-top: 3em; }
-  .entry-num { display: none; }
-  .site-logo img { transform: scale(0.667); transform-origin: top left; }
-  .header-blur { height: 3rem; }
-}
-
 /* ── Post ───────────────────────────────────────────────── */
 .post-header {
   margin-bottom: 2.5rem;
@@ -394,7 +378,7 @@ body {
 
 .post-body p {
   hyphens: auto;
-  text-wrap: pretty;
+  text-wrap: stable;
   margin: 0 0 1.2em;
 }
 
@@ -551,7 +535,9 @@ body {
   text-decoration: none;
   /* monospace stack excludes emoji fonts → ↩ renders as text glyph on iOS */
   font-family: var(--font-mono);
-  margin-left: 0.3em;
+  font-size: 1.6em; /* mono renders smaller than serif at same em — bump up */
+  margin-left: 0.1em;
+  vertical-align: -0.15em; /* nudge ↩ down to sit on body baseline */
   opacity: 0.6;
 }
 
@@ -568,6 +554,24 @@ body {
 
 .footnote-item:target {
   animation: fn-flash 1.8s ease-out;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  body { padding: 0 0.2rem 4rem; }
+  .site-wrap { padding-top: 4.5em; }
+  .entry-dots { display: none; }
+  .entry-date { display: none; }
+  .header-blur { height: 3rem; }
+  .post-header { margin-bottom: 1.5rem; }
+}
+
+@media (max-width: 380px) {
+  .site-wrap { padding-top: 3.5em; }
+  .entry-num { display: none; }
+  .site-logo img { transform: scale(0.667); transform-origin: top left; }
+  .header-blur { height: 3rem; }
+  .post-header { margin-bottom: 1rem; }
 }
 
 /* ── Sidenotes (wide screens only) ── */
