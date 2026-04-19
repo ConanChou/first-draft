@@ -398,6 +398,7 @@ Rule: whichever side kicked off the piece, that side publishes it. Crossing (dra
 ```bash
 IA_WRITER_PATH="..."
 SITE_URL="https://conan.one"
+SITE_DESCRIPTION="A calm, text-first publishing system."
 PUBLIC_REPO="git@github.com:conan/conan-one-site.git"
 DEFAULT_LANG="zh"
 HOME_TZ="America/New_York"
@@ -408,6 +409,7 @@ MICROPUB_TOKEN="..."     # secret; registered in iA Writer once
 ### 9.3 Time zone policy
 
 - `HOME_TZ` (IANA zone name) is the default for all `date` front-matter stamps.
+- `SITE_DESCRIPTION` supplies the home page meta description. If unset, the app falls back to a generic default suitable for open-sourcing.
 - `publish` computes the correct offset at the moment of publish — DST handled automatically (`-05:00` winter, `-04:00` summer for `America/New_York`).
 - Dates always written as full ISO 8601 with offset, e.g. `2026-04-15T15:30:00-04:00`. No ambiguity in feeds, sitemaps, or sort order.
 - Override per invocation with `publish --tz <zone>` or `publish --tz local` when traveling and you want the local wall clock recorded instead.

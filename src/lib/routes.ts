@@ -10,6 +10,7 @@
 
 import { loadAllEntries, loadAllFolders, type Entry, type FolderEntry } from "./content.js";
 import { renderMd } from "./render.js";
+import { getSiteUrl } from "./site-config.js";
 
 export interface RouteEntry extends Entry {
   bodyHtml: string;
@@ -39,7 +40,7 @@ export function getEntryAndFolderParams() {
 }
 
 export async function getStaticPaths() {
-  const siteUrl = process.env.SITE_URL ?? "https://conan.one";
+  const siteUrl = getSiteUrl();
   const entries = loadAllEntries();
   const folders = loadAllFolders();
 

@@ -9,6 +9,7 @@ import {
   extractInlineTags,
   extractFirstHeading,
   extractFirstParagraph,
+  buildFolderDescription,
   loadAllFolders,
   type Entry,
 } from "./content.js";
@@ -212,6 +213,17 @@ describe("extractFirstParagraph", () => {
   });
 });
 
+// ── list page descriptions ───────────────────────────────────────
+
+describe("buildFolderDescription", () => {
+  it("builds fallback description from folder name", () => {
+    assert.equal(
+      buildFolderDescription("sketch", "example.com"),
+      'Browse entries in the "sketch" folder on example.com.',
+    );
+  });
+});
+
 // ── loadAllFolders ───────────────────────────────────────────────
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
@@ -257,10 +269,11 @@ describe("loadAllFolders", () => {
     assert.equal(f.name, "sketch");
     assert.equal(f.slug, "sketch");
     assert.equal(f.title, "sketch"); // folder name as fallback
+    assert.equal(f.description, 'Browse entries in the "sketch" folder on conan.one.');
     assert.ok(f.date); // derived from mtime
   });
 
-  it("uses index.md title, date, lang, tags, and intro", () => {
+  it("uses index.md title, date, lang, tags, desc, and intro", () => {
     const tmp = mkdtempSync(join(tmpdir(), "content-"));
     mkdirSync(join(tmp, "notes"));
     writeFileSync(
@@ -270,6 +283,7 @@ title: "My Notes"
 date: 2026-03-01T00:00:00Z
 lang: en
 tags: ["foo", "bar"]
+desc: "Folder-level description."
 ---
 
 Intro paragraph here.`,
@@ -282,6 +296,7 @@ Intro paragraph here.`,
     assert.equal(f.date, "2026-03-01T00:00:00Z");
     assert.equal(f.lang, "en");
     assert.deepEqual(f.tags, ["foo", "bar"]);
+    assert.equal(f.description, "Folder-level description.");
     assert.ok(f.intro?.includes("Intro paragraph"));
   });
 

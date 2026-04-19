@@ -1,7 +1,13 @@
 ---
 import Base from "../layouts/Base.astro";
 import EntryItem from "../components/EntryItem.astro";
-import { loadAllEntries, loadAllFolders, type Entry, type FolderEntry } from "../lib/content";
+import {
+  loadAllEntries,
+  loadAllFolders,
+  type Entry,
+  type FolderEntry,
+} from "../lib/content";
+import { getSiteDescription } from "../lib/site-config";
 import { fmtDate } from "../lib/utils";
 
 const topEntries = loadAllEntries().filter((e) => e.folder === "");
@@ -16,7 +22,7 @@ function isFolder(item: Entry | FolderEntry): item is FolderEntry {
 }
 ---
 
-<Base title="conan.one">
+<Base title="conan.one" description={getSiteDescription()}>
   <ul class="entry-list">
     {items.map((item) => isFolder(item) ? (
       <li>

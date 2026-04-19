@@ -24,7 +24,7 @@ const canonicalUrl = props.kind === "folder"
   : `${siteUrl}/${props.entry.slug}/`;
 const pageTitle = props.kind === "folder" ? props.folder.title : props.entry.title;
 const pageLang = props.kind === "folder" ? props.folder.lang : props.entry.lang;
-const pageDesc = props.kind === "post" ? props.entry.description : undefined;
+const pageDesc = props.kind === "folder" ? props.folder.description : props.entry.description;
 
 const folderChildren = props.kind === "folder"
   ? [...props.folder.children].sort(

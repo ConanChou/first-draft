@@ -1,9 +1,10 @@
 import type { APIRoute } from "astro";
 import { loadAllEntries, loadAllFolders, type Entry, type FolderEntry } from "../lib/content";
 import { homeToMd } from "../lib/md-output";
+import { getSiteUrl } from "../lib/site-config";
 
 export const GET: APIRoute = () => {
-  const siteUrl = process.env.SITE_URL ?? "https://conan.one";
+  const siteUrl = getSiteUrl();
   const entries = loadAllEntries().filter((e) => e.folder === "");
   const folders = loadAllFolders();
 

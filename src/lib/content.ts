@@ -13,9 +13,10 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, basename, dirname } from "node:path";
+import { getDefaultLang, getSiteName } from "./site-config.js";
 
 const CONTENT_DIR = join(process.cwd(), "src/content");
-const DEFAULT_LANG = process.env.DEFAULT_LANG ?? "zh";
+const DEFAULT_LANG = getDefaultLang();
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -73,10 +74,16 @@ export interface FolderEntry {
   lang: string;
   /** Tags */
   tags: string[];
+  /** Meta description for folder list page */
+  description: string;
   /** Optional intro body from index.md */
   intro?: string;
   /** Direct child entries */
   children: Entry[];
+}
+
+export function buildFolderDescription(name: string, siteName: string = getSiteName()): string {
+  return `Browse entries in the "${name}" folder on ${siteName}.`;
 }
 
 // ── Filename parsing ───────────────────────────────────────────────
@@ -283,6 +290,7 @@ export function loadAllFolders(
     let date: string | undefined;
     let lang = DEFAULT_LANG;
     let tags: string[] = [];
+    let description = buildFolderDescription(name);
     let intro: string | undefined;
 
     const indexPath = join(dirPath, "index.md");
@@ -293,6 +301,7 @@ export function loadAllFolders(
       date = fm.date;
       lang = fm.lang ?? DEFAULT_LANG;
       tags = fm.tags ?? [];
+      description = fm.desc ?? description;
       if (body.trim()) intro = body.trim();
     } catch {
       // No index.md — derive date from mtimes below
@@ -321,6 +330,7 @@ export function loadAllFolders(
       date,
       lang,
       tags,
+      description,
       intro,
       children,
     });

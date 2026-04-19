@@ -31,6 +31,7 @@ function makeFolder(overrides: Partial<FolderEntry> = {}): FolderEntry {
     date: "2026-04-10T00:00:00Z",
     lang: "zh",
     tags: [],
+    description: "",
     intro: undefined,
     children: [],
     ...overrides,

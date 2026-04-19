@@ -1,5 +1,6 @@
 import type { APIRoute, GetStaticPathsResult } from "astro";
 import { loadAllEntries, type Entry } from "../lib/content";
+import { getSiteUrl } from "../lib/site-config";
 
 const FEED_LANGS = ["zh", "en"] as const;
 type FeedLang = (typeof FEED_LANGS)[number];
@@ -24,7 +25,7 @@ function renderItem(e: Entry, siteUrl: string): string {
 
 export const GET: APIRoute = ({ props }) => {
   const lang = props.lang as FeedLang;
-  const siteUrl = process.env.SITE_URL ?? "https://conan.one";
+  const siteUrl = getSiteUrl();
   const entries = loadAllEntries()
     .filter((e) => e.lang === lang)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

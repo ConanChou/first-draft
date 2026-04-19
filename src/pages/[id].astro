@@ -1,7 +1,8 @@
 ---
 import { loadAllEntries } from "../lib/content.js";
+import { getDefaultLang } from "../lib/site-config";
 
-const DEFAULT_LANG = process.env.DEFAULT_LANG ?? "zh";
+const DEFAULT_LANG = getDefaultLang();
 
 export function getStaticPaths() {
   const entries = loadAllEntries();
