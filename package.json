@@ -9,6 +9,8 @@
     "astro": "astro",
     "test": "node --test 'scripts/**/*.test.mjs' && node --import tsx/esm --test 'src/lib/**/*.test.ts'",
     "test:scripts": "node --test 'scripts/**/*.test.mjs'",
+    "test:scripts:pre-commit": "node --test scripts/_lib.test.mjs scripts/build.test.mjs scripts/deploy.test.mjs scripts/fetch.test.mjs scripts/install-script.test.mjs scripts/link.test.mjs scripts/micropub.test.mjs scripts/publish.test.mjs",
+    "test:pre-commit": "pnpm test:scripts:pre-commit && pnpm test:lib",
     "test:lib": "node --import tsx/esm --test 'src/lib/**/*.test.ts'",
     "test:zig": "cd scripts/micropub-server && zig build test --summary all"
   },
