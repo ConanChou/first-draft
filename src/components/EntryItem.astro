@@ -11,7 +11,7 @@ const isDev = import.meta.env.DEV;
 const dateLabel = entry.fm.draft ? (isDev ? "draft" : "") : fmtDate(entry.date);
 ---
 
-<li data-id={entry.id} data-lang={entry.lang} class:list={[{ draft: entry.fm.draft }]}>
+<li lang={entry.lang} data-id={entry.id} data-lang={entry.lang} class:list={[{ draft: entry.fm.draft }]}>
   <span class="entry-num">{entry.id}</span>
   <a href={`/${entry.slug}/`} class="entry-title">
     {entry.title || `(untitled ${entry.id})`}

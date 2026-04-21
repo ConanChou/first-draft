@@ -23,7 +23,7 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} data-page-lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -195,6 +195,24 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
         return localStorage.getItem(STORAGE_KEY) || navigator.language.split("-")[0] || "zh";
       }
 
+      function syncDocumentLang() {
+        const root = document.documentElement;
+        const visibleLangs = new Set<string>();
+
+        document.querySelectorAll<HTMLElement>(".entry-list li[lang]").forEach((el) => {
+          if (getComputedStyle(el).display === "none") return;
+          const itemLang = el.getAttribute("lang");
+          if (itemLang) visibleLangs.add(itemLang);
+        });
+
+        if (visibleLangs.size === 1) {
+          root.lang = [...visibleLangs][0]!;
+          return;
+        }
+
+        root.lang = root.dataset.pageLang || root.lang;
+      }
+
       function deduplicateSiblings() {
         const lang = getPreferredLang();
         const groups = new Map<string, HTMLElement[]>();
@@ -218,7 +236,10 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
         if (link?.dataset.lang) localStorage.setItem(STORAGE_KEY, link.dataset.lang);
       });
 
-      document.addEventListener("astro:page-load", deduplicateSiblings);
+      document.addEventListener("astro:page-load", () => {
+        deduplicateSiblings();
+        syncDocumentLang();
+      });
     </script>
   </body>
 </html>

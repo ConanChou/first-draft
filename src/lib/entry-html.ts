@@ -12,7 +12,7 @@ export function entryLiHtml(entry: Entry): string {
   const title = entry.title || `(untitled ${entry.id})`;
   const date = entry.fm.draft ? "" : fmtDate(entry.date);
   return (
-    `<li data-id="${escHtml(entry.id)}" data-lang="${escHtml(entry.lang)}"${draftCls}>` +
+    `<li lang="${escHtml(entry.lang)}" data-id="${escHtml(entry.id)}" data-lang="${escHtml(entry.lang)}"${draftCls}>` +
     `<span class="entry-num">${escHtml(entry.id)}</span>` +
     `<a href="/${escHtml(entry.slug)}/" class="entry-title">${escHtml(title)}</a>` +
     `<span class="entry-dots" aria-hidden="true"></span>` +
@@ -23,7 +23,7 @@ export function entryLiHtml(entry: Entry): string {
 
 export function folderLiHtml(folder: FolderEntry): string {
   return (
-    `<li>` +
+    `<li lang="${escHtml(folder.lang)}">` +
     `<span class="entry-num">▓▓▓▓</span>` +
     `<a href="/${escHtml(folder.slug)}/" class="entry-title">${escHtml(folder.title)}</a>` +
     `<span class="entry-dots" aria-hidden="true"></span>` +
