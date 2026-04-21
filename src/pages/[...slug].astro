@@ -2,6 +2,7 @@
 import type { GetStaticPathsResult } from "astro";
 import Base from "../layouts/Base.astro";
 import EntryItem from "../components/EntryItem.astro";
+import PostFootnotes from "../components/PostFootnotes.astro";
 import { getStaticPaths as routesGetStaticPaths, type RouteEntry, type FolderRouteEntry } from "../lib/routes";
 import { getEntryById } from "../lib/content";
 import { fmtDate } from "../lib/utils";
@@ -73,6 +74,7 @@ const siblingEntry = props.kind === "post" && props.entry.translations[0]
           ))}
         </div>
       )}
+      <PostFootnotes />
     </article>
   )}
 </Base>
