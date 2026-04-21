@@ -54,6 +54,28 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
     <ClientRouter />
   </head>
   <body>
+    <svg class="paper-filter-defs" aria-hidden="true" focusable="false" width="0" height="0">
+      <defs>
+        <filter id="ink-bleed" x="-4%" y="-4%" width="108%" height="108%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.18" result="blurred" />
+          <feColorMatrix
+            in="blurred"
+            type="matrix"
+            values="
+              1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 1 0"
+            result="spread"
+          />
+          <feBlend in="SourceGraphic" in2="spread" mode="multiply" />
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="paper-overlay" aria-hidden="true"></div>
+    <div class="paper-vignette" aria-hidden="true"></div>
+
     <div class="header-blur" aria-hidden="true">
       <div></div><div></div><div></div><div></div><div></div><div></div>
     </div>
