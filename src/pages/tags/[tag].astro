@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import EntryItem from "../../components/EntryItem.astro";
 import { getAllTags } from "../../lib/content";
+import { getFontProfileForLangs } from "../../lib/font-profile";
 
 export async function getStaticPaths() {
   const tags = getAllTags();
@@ -17,9 +18,10 @@ export async function getStaticPaths() {
 }
 
 const { tag, entries } = Astro.props;
+const fontProfile = getFontProfileForLangs(entries.map((entry) => entry.lang));
 ---
 
-<Base title={`#${tag}`}>
+<Base title={`#${tag}`} fontProfile={fontProfile}>
   <h1 class="page-heading">#{tag}</h1>
   <ul class="entry-list">
     {entries.map((entry) => <EntryItem entry={entry} />)}

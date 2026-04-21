@@ -5,6 +5,7 @@ import EntryItem from "../components/EntryItem.astro";
 import PostFootnotes from "../components/PostFootnotes.astro";
 import { getStaticPaths as routesGetStaticPaths, type RouteEntry, type FolderRouteEntry } from "../lib/routes";
 import { getEntryById } from "../lib/content";
+import { getFontProfileForLang, getFontProfileForLangs } from "../lib/font-profile";
 import { fmtDate } from "../lib/utils";
 
 export async function getStaticPaths(): Promise<GetStaticPathsResult> {
@@ -32,13 +33,22 @@ const folderChildren = props.kind === "folder"
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )
   : [];
+const fontProfile = props.kind === "folder"
+  ? getFontProfileForLangs([props.folder.lang, ...folderChildren.map((child) => child.lang)])
+  : getFontProfileForLang(props.entry.lang);
 
 const siblingEntry = props.kind === "post" && props.entry.translations[0]
   ? getEntryById(props.entry.id, props.entry.translations[0]) ?? null
   : null;
 ---
 
-<Base title={pageTitle} lang={pageLang} canonicalUrl={canonicalUrl} description={pageDesc}>
+<Base
+  title={pageTitle}
+  lang={pageLang}
+  canonicalUrl={canonicalUrl}
+  description={pageDesc}
+  fontProfile={fontProfile}
+>
   {props.kind === "folder" ? (
     <div class="section-page">
       <header class="post-header">

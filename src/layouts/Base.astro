@@ -1,5 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import type { FontProfile } from "../lib/font-profile";
 import "../styles/global.css";
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   canonicalUrl?: string;
   lang?: string;
   ogImage?: string;
+  fontProfile?: FontProfile;
 }
 
 const {
@@ -16,10 +18,13 @@ const {
   canonicalUrl = Astro.url.href,
   lang = "zh",
   ogImage,
+  fontProfile = "mixed",
 } = Astro.props;
 
 const siteTitle = "conan.one";
 const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
+const LATIN_FONT_HREF = "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400;1,8..60,500;1,8..60,700&family=Inter:wght@400;500;700&display=swap";
+const CJK_FONT_HREF = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap";
 ---
 
 <!doctype html>
@@ -43,13 +48,11 @@ const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Typography: Source Serif 4 (prose), Inter (UI), Noto Serif/Sans SC (CJK) -->
+    <!-- Typography: Source Serif 4 (prose), Inter (UI), optional CJK set -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400;1,8..60,500;1,8..60,700&family=Inter:wght@400;500;700&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
-    />
+    <link rel="stylesheet" href={LATIN_FONT_HREF} />
+    {fontProfile === "mixed" && <link rel="stylesheet" href={CJK_FONT_HREF} />}
 
     <ClientRouter />
   </head>
