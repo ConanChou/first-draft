@@ -405,7 +405,7 @@ li[data-lang="zh"] .entry-date {
   font-weight: 400;
   line-height: 1.25;
   margin-top: 2em;
-  margin-bottom: 0.5em;
+  margin-bottom: 1em;
 }
 
 .post-body h1 { font-size: var(--fs-h1); }
