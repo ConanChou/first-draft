@@ -1,4 +1,4 @@
-# conan.one — Agent Orientation
+# Writing-First Site — Agent Orientation
 
 ## What this is
 
@@ -14,21 +14,22 @@ Not a CMS. Markdown files are canonical. Site is derived.
 | Layer | Choice |
 |-------|--------|
 | SSG | Astro 6 |
-| Styling | Tailwind CSS v4 (warm minimal palette, dark mode via `prefers-color-scheme`) |
-| Content source | iA Writer library (iCloud), rsynced into `content/` by `fetch` script |
+| Styling | Tailwind CSS v4 plus hand-written global CSS (warm minimal palette, dark mode via `prefers-color-scheme`) |
+| Content source | iA Writer library (iCloud), exposed as `src/content` symlink and verified by `fetch` |
 | Output | Static HTML → GitHub Pages (public repo, separate from source) |
 | Scripts | Node ESM (`scripts/`), shared lib at `scripts/_lib.mjs` |
-| Micropub server | Zig stdlib, `scripts/micropub-server/src/main.zig` (planned) |
+| Micropub server | Zig stdlib, `scripts/micropub-server/src/main.zig` |
 
 ### Repo layout (source)
 
 ```text
-conan.one/
+site/
   src/
-    layouts/Base.astro       # HTML shell, lang toggle, fixed logo + footer
+    layouts/Base.astro       # HTML shell, preferred-lang handling, fixed logo + footer
     pages/
       index.astro            # home listing
-      [...slug].astro        # post pages
+      [...slug].astro        # post + folder pages
+      tags/                  # tag pages + markdown siblings
     lib/
       content.ts             # loadAllEntries(), front matter parsing
       render.ts              # marked → HTML, strips leading h1
@@ -36,11 +37,11 @@ conan.one/
       routes.ts              # getStaticPaths()
     styles/global.css        # all CSS (design tokens, layout, entry list, post)
   scripts/
-    _lib.mjs                 # shared: env, FM parse/stringify, slugify, date, walkMd
-    draft / translate / publish / fetch / build / deploy
+    _lib.mjs                 # shared: env, FM parse/stringify/template, slugify, date, walkMd
+    draft / translate / publish / link / fetch / build / deploy
     micropub                 # lifecycle wrapper (install/start/stop/status/logs)
-    micropub-server/         # Zig signal server (planned)
-  content/                   # gitignored; populated by `fetch`
+    micropub-server/         # Zig signal server
+  src/content                # gitignored symlink to iA Writer library
   docs/project.md            # full product spec
 ```
 
@@ -149,8 +150,8 @@ Linter errors block the refactor step — fix before marking done. No `// eslint
 ## Key decisions already made
 
 - Logo: fixed top-left, SVG, dim "engraving" opacity on idle, full opacity on hover. CSS filter vars: `--logo-filter` / `--logo-filter-dim` (avoids `filter: none` mixing bug).
-- Footer: fixed bottom, full viewport width, lang toggle left / copyright right.
-- Lang toggle: single button showing OTHER language label. State in `localStorage`. Initial value rendered server-side (avoids 0×0 flash).
+- Footer: fixed bottom, full viewport width, copyright only.
+- Preferred language: set by translation link on post pages. Listing dedupe and `/[id]` redirect read `localStorage`.
 - Entry list: uniform `1.3em`, dot leaders (`border-bottom: dotted`), full `li` clickable via `a::after { position: absolute; inset: 0 }`.
 - Post body: leading `h1` stripped at render time to avoid duplicate h1 (regex `^\s*#[^#]` handles leading whitespace left by FM parser).
 - Warm color palette, dark mode darker bg, muted text: see `src/styles/global.css` design tokens.

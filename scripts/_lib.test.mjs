@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import {
   parseFrontMatter,
   stringifyFrontMatter,
+  buildDraftTemplate,
   slugify,
   parseFilename,
   formatDateISO,
@@ -33,6 +34,7 @@ slug: "on-writing-well"
 draft: false
 lang: en
 tags: ["writing", "craft"]
+desc: "Short summary."
 ---
 
 Body here.`;
@@ -43,6 +45,7 @@ Body here.`;
     assert.equal(fm.draft, false);
     assert.equal(fm.lang, "en");
     assert.deepEqual(fm.tags, ["writing", "craft"]);
+    assert.equal(fm.desc, "Short summary.");
     assert.equal(body.trim(), "Body here.");
   });
 
@@ -69,13 +72,14 @@ Body here.`;
 
 describe("stringifyFrontMatter", () => {
   it("roundtrips basic fields", () => {
-    const fm = { title: "Test", draft: false, lang: "zh", tags: ["a", "b"] };
+    const fm = { title: "Test", draft: false, lang: "zh", tags: ["a", "b"], desc: "Summary" };
     const result = stringifyFrontMatter(fm, "body");
     assert.ok(result.startsWith("---\n"));
     assert.ok(result.includes('title: "Test"'));
     assert.ok(result.includes("draft: false"));
     assert.ok(result.includes('lang: "zh"'));
     assert.ok(result.includes('tags: ["a", "b"]'));
+    assert.ok(result.includes('desc: "Summary"'));
     assert.ok(result.endsWith("body"));
   });
 
@@ -83,6 +87,18 @@ describe("stringifyFrontMatter", () => {
     const result = stringifyFrontMatter({ title: "X" }, "");
     assert.ok(!result.includes("date:"));
     assert.ok(!result.includes("draft:"));
+  });
+});
+
+describe("buildDraftTemplate", () => {
+  it("creates standardized draft front matter for script tools", () => {
+    const template = buildDraftTemplate("en");
+    assert.match(template, /slug: ""/);
+    assert.match(template, /draft: true/);
+    assert.match(template, /lang: "en"/);
+    assert.match(template, /tags: \[\]/);
+    assert.match(template, /desc: ""/);
+    assert.match(template, /# $/);
   });
 });
 

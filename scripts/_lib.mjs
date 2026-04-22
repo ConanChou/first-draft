@@ -1,5 +1,5 @@
 /**
- * Shared utilities for conan.one scripts.
+ * Shared utilities for site scripts.
  * All functions are synchronous unless noted.
  */
 
@@ -10,6 +10,10 @@ import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const FM_STRING_FIELDS = new Set(["title", "slug", "date", "lang", "desc"]);
+const FM_ARRAY_FIELDS = new Set(["tags"]);
+const FM_BOOLEAN_FIELDS = new Set(["draft"]);
+const FM_ORDER = ["title", "date", "slug", "draft", "lang", "tags", "desc"];
 
 // ── .env ──────────────────────────────────────────────────────────
 export function loadEnv() {
@@ -36,11 +40,11 @@ export function parseFrontMatter(raw) {
     if (colon === -1) continue;
     const key = line.slice(0, colon).trim();
     const val = line.slice(colon + 1).trim();
-    if (["title", "slug", "date", "lang"].includes(key)) {
+    if (FM_STRING_FIELDS.has(key)) {
       fm[key] = val.replace(/^["']|["']$/g, "");
-    } else if (key === "draft") {
+    } else if (FM_BOOLEAN_FIELDS.has(key)) {
       fm[key] = val === "true";
-    } else if (key === "tags") {
+    } else if (FM_ARRAY_FIELDS.has(key)) {
       const inner = val.replace(/^\[|\]$/g, "");
       fm[key] = inner.split(",").map(t => t.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
     }
@@ -50,15 +54,14 @@ export function parseFrontMatter(raw) {
 
 export function stringifyFrontMatter(fm, body) {
   const lines = ["---"];
-  const order = ["title", "date", "slug", "draft", "lang", "tags"];
-  const keys = [...new Set([...order, ...Object.keys(fm)])];
+  const keys = [...new Set([...FM_ORDER, ...Object.keys(fm)])];
   for (const key of keys) {
     if (!(key in fm) || fm[key] === undefined || fm[key] === null) continue;
     const val = fm[key];
-    if (key === "tags") {
+    if (FM_ARRAY_FIELDS.has(key)) {
       const arr = Array.isArray(val) ? val : [val];
       lines.push(`tags: [${arr.map(t => `"${t}"`).join(", ")}]`);
-    } else if (typeof val === "boolean") {
+    } else if (typeof val === "boolean" || FM_BOOLEAN_FIELDS.has(key)) {
       lines.push(`${key}: ${val}`);
     } else {
       lines.push(`${key}: "${val}"`);
@@ -66,6 +69,20 @@ export function stringifyFrontMatter(fm, body) {
   }
   lines.push("---", "");
   return lines.join("\n") + body;
+}
+
+export function buildDraftFrontMatter(lang) {
+  return {
+    slug: "",
+    draft: true,
+    lang,
+    tags: [],
+    desc: "",
+  };
+}
+
+export function buildDraftTemplate(lang) {
+  return stringifyFrontMatter(buildDraftFrontMatter(lang), "# ");
 }
 
 // ── Slug ─────────────────────────────────────────────────────────

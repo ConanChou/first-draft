@@ -36,6 +36,11 @@ describe("rewriteHashtagsHtml", () => {
     assert.ok(!out.includes("/tags/"));
   });
 
+  it("does not rewrite #tag inside existing links", () => {
+    const out = rewriteHashtagsHtml('<p><a href="/x">#writing</a></p>');
+    assert.equal(out, '<p><a href="/x">#writing</a></p>');
+  });
+
   it("does not match C# (no preceding whitespace)", () => {
     const out = rewriteHashtagsHtml("<p>Written in C#.</p>");
     assert.ok(!out.includes("/tags/"));

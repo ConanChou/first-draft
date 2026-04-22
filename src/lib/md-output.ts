@@ -5,6 +5,7 @@
 
 import type { Entry, FolderEntry } from "./content.js";
 import { rewriteHashtagsMd, rewriteInternalLinksMd } from "./markdown.js";
+import { getSiteName } from "./site-config.js";
 import { fmtDate, stripLeadingH1 } from "./utils.js";
 
 /** Render a post as a clean .md consumption artifact. */
@@ -50,7 +51,7 @@ function isFolder(item: Entry | FolderEntry): item is FolderEntry {
 
 /** Render the home listing as a clean .md consumption artifact. */
 export function homeToMd(items: (Entry | FolderEntry)[], siteUrl: string): string {
-  const lines: string[] = ["# conan.one", "", "## Entries", ""];
+  const lines: string[] = [`# ${getSiteName({ SITE_URL: siteUrl })}`, "", "## Entries", ""];
 
   for (const item of items) {
     const date = fmtDate(item.date);
@@ -62,5 +63,31 @@ export function homeToMd(items: (Entry | FolderEntry)[], siteUrl: string): strin
   }
 
   lines.push("", "---", `*Source: ${siteUrl}/*`);
+  return lines.join("\n");
+}
+
+export function tagToMd(tag: string, entries: Entry[], siteUrl: string): string {
+  const lines: string[] = [`# #${tag}`, ""];
+  const sorted = [...entries].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+
+  for (const entry of sorted) {
+    lines.push(`- [${entry.id} ${entry.title}](/${entry.slug}.md) — ${fmtDate(entry.date)}`);
+  }
+
+  lines.push("", "---", `*[← Tags](/tags/index.md) · Source: ${siteUrl}/tags/${tag}/*`);
+  return lines.join("\n");
+}
+
+export function tagIndexToMd(tags: Array<[string, Entry[]]>, siteUrl: string): string {
+  const lines: string[] = ["# Tags", ""];
+  const sorted = [...tags].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+
+  for (const [tag, entries] of sorted) {
+    lines.push(`- [#${tag}](/tags/${tag}.md) — ${entries.length}`);
+  }
+
+  lines.push("", "---", `*Source: ${siteUrl}/tags/*`);
   return lines.join("\n");
 }

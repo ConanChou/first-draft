@@ -12,7 +12,7 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
-import { loadEnv, findById } from "./_lib.mjs";
+import { loadEnv, findById, buildDraftTemplate } from "./_lib.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
@@ -65,7 +65,7 @@ if (existsSync(filePath)) {
 }
 
 mkdirSync(targetDir, { recursive: true });
-writeFileSync(filePath, `---\ndraft: true\nlang: "${lang}"\n---\n\n# \n`);
+writeFileSync(filePath, buildDraftTemplate(lang));
 console.log(filePath);
 
 try {

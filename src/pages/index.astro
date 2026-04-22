@@ -8,7 +8,7 @@ import {
   type FolderEntry,
 } from "../lib/content";
 import { getFontProfileForLangs } from "../lib/font-profile";
-import { getSiteDescription } from "../lib/site-config";
+import { getSiteDescription, getSiteName } from "../lib/site-config";
 import { fmtDate } from "../lib/utils";
 
 const topEntries = loadAllEntries().filter((e) => e.folder === "");
@@ -22,9 +22,10 @@ const fontProfile = getFontProfileForLangs(items.map((item) => item.lang));
 function isFolder(item: Entry | FolderEntry): item is FolderEntry {
   return "children" in item;
 }
+const siteName = getSiteName();
 ---
 
-<Base title="conan.one" description={getSiteDescription()} fontProfile={fontProfile}>
+<Base title={siteName} description={getSiteDescription()} fontProfile={fontProfile}>
   <ul class="entry-list">
     {items.map((item) => isFolder(item) ? (
       <li lang={item.lang}>

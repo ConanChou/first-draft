@@ -18,7 +18,7 @@ pub const Config = struct {
 pub fn parseEnv(contents: []const u8, buf: *EnvBuf) Config {
     var port: u16 = 4567;
     buf.token = "";
-    buf.site_url = "https://conan.one";
+    buf.site_url = "https://example.com";
     buf.scripts_dir = "./scripts";
 
     var lines = std.mem.splitScalar(u8, contents, '\n');
@@ -84,15 +84,13 @@ fn extractFormField(body: []const u8, field: []const u8, buf: []u8) ?[]const u8 
 }
 
 fn extractJsonField(body: []const u8, field: []const u8, buf: []u8) ?[]const u8 {
-    // Minimal JSON string extraction: find `"<field>":"<value>"` pattern.
-    // Not a full parser — sufficient for the single-field we care about.
+    // Minimal JSON string extraction: find `"<field>":"<value>"`
+    // or `"<field>":["<value>", ...]` anywhere in body.
     var pos: usize = 0;
     while (pos < body.len) {
-        // Look for `"field"`
         const needle = field;
         const found = std.mem.indexOf(u8, body[pos..], needle) orelse break;
         const abs = pos + found;
-        // Check that it is preceded by `"` and followed by `"`
         if (abs == 0 or body[abs - 1] != '"') {
             pos = abs + needle.len;
             continue;
@@ -102,16 +100,28 @@ fn extractJsonField(body: []const u8, field: []const u8, buf: []u8) ?[]const u8 
             pos = after_key;
             continue;
         }
-        // Skip `: "` or `":"`
+
         var val_start = after_key + 1;
         while (val_start < body.len and (body[val_start] == ':' or body[val_start] == ' ')) val_start += 1;
+
+        if (val_start < body.len and body[val_start] == '[') {
+            val_start += 1;
+            while (val_start < body.len and body[val_start] == ' ') val_start += 1;
+        }
+
         if (val_start >= body.len or body[val_start] != '"') {
             pos = val_start;
             continue;
         }
-        val_start += 1; // skip opening quote
-        const val_end = std.mem.indexOfScalar(u8, body[val_start..], '"') orelse break;
-        const val = body[val_start .. val_start + val_end];
+
+        val_start += 1;
+        var val_end = val_start;
+        while (val_end < body.len) : (val_end += 1) {
+            if (body[val_end] == '"' and (val_end == val_start or body[val_end - 1] != '\\')) break;
+        }
+        if (val_end >= body.len) break;
+
+        const val = body[val_start..val_end];
         const n = @min(val.len, buf.len);
         @memcpy(buf[0..n], val[0..n]);
         return buf[0..n];
@@ -427,12 +437,9 @@ test "extractName: JSON body" {
     const body =
         \\{"type":["h-entry"],"properties":{"name":["My Post Title"]}}
     ;
-    // JSON name extraction: looks for "name" field at top level.
-    // This body has "name" inside "properties" — not top-level.
-    // The minimal extractor finds the first "name" key regardless.
     const name = extractName(body, "application/json", &buf);
-    // Should find the "name" value (first match)
-    _ = name; // presence checked in integration test; unit test verifies no crash
+    try std.testing.expect(name != null);
+    try std.testing.expectEqualStrings("My Post Title", name.?);
 }
 
 test "extractName: simple JSON" {

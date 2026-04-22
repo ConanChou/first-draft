@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { postToMd, folderToMd, homeToMd } from "./md-output.js";
+import { postToMd, folderToMd, homeToMd, tagToMd, tagIndexToMd } from "./md-output.js";
 import type { Entry, FolderEntry } from "./content.js";
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
@@ -42,12 +42,12 @@ function makeFolder(overrides: Partial<FolderEntry> = {}): FolderEntry {
 
 describe("postToMd", () => {
   it("starts with h1 title", () => {
-    const md = postToMd(makeEntry(), "https://conan.one");
+    const md = postToMd(makeEntry(), "https://example.com");
     assert.ok(md.startsWith("# On writing\n"));
   });
 
   it("includes date, lang in meta line", () => {
-    const md = postToMd(makeEntry(), "https://conan.one");
+    const md = postToMd(makeEntry(), "https://example.com");
     const lines = md.split("\n");
     const meta = lines[2]!;
     assert.ok(meta.includes("2026-04-14"), "date in meta");
@@ -55,39 +55,39 @@ describe("postToMd", () => {
   });
 
   it("includes source line", () => {
-    const md = postToMd(makeEntry(), "https://conan.one");
+    const md = postToMd(makeEntry(), "https://example.com");
     assert.ok(md.includes("[← Index](/index.md)"), "index link");
-    assert.ok(md.includes("Source: https://conan.one/0042-on-writing/*"), "source line");
+    assert.ok(md.includes("Source: https://example.com/0042-on-writing/*"), "source line");
   });
 
   it("strips leading h1 from body to avoid duplicate", () => {
-    const md = postToMd(makeEntry({ body: "# On writing\n\nBody content." }), "https://conan.one");
+    const md = postToMd(makeEntry({ body: "# On writing\n\nBody content." }), "https://example.com");
     const h1s = (md.match(/^# /gm) ?? []).length;
     assert.equal(h1s, 1, "exactly one h1");
     assert.ok(md.includes("Body content."), "body preserved");
   });
 
   it("includes tags as .md links in meta line", () => {
-    const md = postToMd(makeEntry({ tags: ["writing", "craft"] }), "https://conan.one");
+    const md = postToMd(makeEntry({ tags: ["writing", "craft"] }), "https://example.com");
     assert.ok(md.includes("[#writing](/tags/writing.md)"), "writing tag link");
     assert.ok(md.includes("[#craft](/tags/craft.md)"), "craft tag link");
   });
 
   it("omits tag links when no tags", () => {
-    const md = postToMd(makeEntry({ tags: [] }), "https://conan.one");
+    const md = postToMd(makeEntry({ tags: [] }), "https://example.com");
     const metaLine = md.split("\n")[2] ?? "";
     assert.ok(!metaLine.includes("/tags/"), "no tag links in meta");
   });
 
   it("rewrites internal links to .md siblings in body", () => {
     const entry = makeEntry({ body: "See [note](/0038-first-steps/) here." });
-    const md = postToMd(entry, "https://conan.one");
+    const md = postToMd(entry, "https://example.com");
     assert.ok(md.includes("[note](/0038-first-steps.md)"), "internal link rewritten");
   });
 
   it("rewrites inline hashtags to .md tag links in body", () => {
     const entry = makeEntry({ body: "About #writing today." });
-    const md = postToMd(entry, "https://conan.one");
+    const md = postToMd(entry, "https://example.com");
     assert.ok(md.includes("[#writing](/tags/writing.md)"), "inline hashtag rewritten");
   });
 });
@@ -96,15 +96,15 @@ describe("postToMd", () => {
 
 describe("folderToMd", () => {
   it("includes title, date, source", () => {
-    const md = folderToMd(makeFolder(), "https://conan.one");
+    const md = folderToMd(makeFolder(), "https://example.com");
     assert.ok(md.includes("# Sketch"), "title");
     assert.ok(md.includes("2026-04-10"), "date");
     assert.ok(md.includes("[← Index](/index.md)"), "index link");
-    assert.ok(md.includes("Source: https://conan.one/sketch/*"), "source");
+    assert.ok(md.includes("Source: https://example.com/sketch/*"), "source");
   });
 
   it("includes ## Entries section", () => {
-    const md = folderToMd(makeFolder(), "https://conan.one");
+    const md = folderToMd(makeFolder(), "https://example.com");
     assert.ok(md.includes("## Entries"), "entries header");
   });
 
@@ -116,18 +116,18 @@ describe("folderToMd", () => {
       date: "2026-04-10T00:00:00Z",
       folder: "sketch",
     });
-    const md = folderToMd(makeFolder({ children: [child] }), "https://conan.one");
+    const md = folderToMd(makeFolder({ children: [child] }), "https://example.com");
     assert.ok(md.includes("/0051-studio.md"), "child .md link");
     assert.ok(md.includes("Studio notes"), "child title");
   });
 
   it("includes intro when present", () => {
-    const md = folderToMd(makeFolder({ intro: "This is the intro." }), "https://conan.one");
+    const md = folderToMd(makeFolder({ intro: "This is the intro." }), "https://example.com");
     assert.ok(md.includes("This is the intro."), "intro text");
   });
 
   it("omits intro block when absent", () => {
-    const md = folderToMd(makeFolder({ intro: undefined }), "https://conan.one");
+    const md = folderToMd(makeFolder({ intro: undefined }), "https://example.com");
     // The intro block should not be present — check no blank line cluster before Entries
     const entriesIdx = md.indexOf("## Entries");
     const before = md.slice(0, entriesIdx);
@@ -137,7 +137,7 @@ describe("folderToMd", () => {
   it("sorts children reverse-chronological", () => {
     const older = makeEntry({ slug: "0048-older", date: "2026-04-08T00:00:00Z", folder: "sketch" });
     const newer = makeEntry({ slug: "0051-newer", date: "2026-04-10T00:00:00Z", folder: "sketch" });
-    const md = folderToMd(makeFolder({ children: [older, newer] }), "https://conan.one");
+    const md = folderToMd(makeFolder({ children: [older, newer] }), "https://example.com");
     assert.ok(md.indexOf("0051-newer") < md.indexOf("0048-older"), "newer before older");
   });
 });
@@ -146,20 +146,64 @@ describe("folderToMd", () => {
 
 describe("homeToMd", () => {
   it("includes ## Entries and source line", () => {
-    const md = homeToMd([], "https://conan.one");
+    const md = homeToMd([], "https://example.com");
+    assert.ok(md.startsWith("# example.com\n"), "site name heading");
     assert.ok(md.includes("## Entries"), "entries section");
-    assert.ok(md.includes("*Source: https://conan.one/*"), "source line");
+    assert.ok(md.includes("*Source: https://example.com/*"), "source line");
   });
 
   it("lists entries with .md links", () => {
-    const md = homeToMd([makeEntry()], "https://conan.one");
+    const md = homeToMd([makeEntry()], "https://example.com");
     assert.ok(md.includes("/0042-on-writing.md"), "entry link");
     assert.ok(md.includes("On writing"), "entry title");
   });
 
   it("lists folders with .md links", () => {
-    const md = homeToMd([makeFolder()], "https://conan.one");
+    const md = homeToMd([makeFolder()], "https://example.com");
     assert.ok(md.includes("/sketch.md"), "folder link");
     assert.ok(md.includes("Sketch"), "folder title");
+  });
+});
+
+describe("tagToMd", () => {
+  it("renders tagged entries as .md links", () => {
+    const older = makeEntry({
+      id: "0041",
+      slug: "0041-earlier",
+      title: "Earlier note",
+      date: "2026-04-01T00:00:00Z",
+      tags: ["writing"],
+    });
+    const newer = makeEntry({
+      id: "0042",
+      slug: "0042-later",
+      title: "Later note",
+      date: "2026-04-20T00:00:00Z",
+      tags: ["writing"],
+    });
+
+    const md = tagToMd("writing", [older, newer], "https://example.com");
+
+    assert.ok(md.includes("# #writing"));
+    assert.ok(md.includes("[0042 Later note](/0042-later.md)"));
+    assert.ok(md.includes("[0041 Earlier note](/0041-earlier.md)"));
+    assert.ok(md.indexOf("0042 Later note") < md.indexOf("0041 Earlier note"), "newer before older");
+  });
+});
+
+describe("tagIndexToMd", () => {
+  it("renders tag index with .md links", () => {
+    const writing = makeEntry({ tags: ["writing"] });
+    const craft = makeEntry({ id: "0043", slug: "0043-craft", tags: ["craft"] });
+
+    const md = tagIndexToMd([
+      ["writing", [writing]],
+      ["craft", [writing, craft]],
+    ], "https://example.com");
+
+    assert.ok(md.includes("[#craft](/tags/craft.md)"));
+    assert.ok(md.includes("[#writing](/tags/writing.md)"));
+    assert.ok(md.includes("# Tags"));
+    assert.ok(md.includes("*Source: https://example.com/tags/*"));
   });
 });

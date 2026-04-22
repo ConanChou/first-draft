@@ -23,6 +23,12 @@ if [ -z "$PUBLIC_REPO" ]; then
   exit 1
 fi
 
+SITE_HOST="${SITE_URL#*://}"
+SITE_HOST="${SITE_HOST%%/*}"
+if [ -z "$SITE_HOST" ]; then
+  SITE_HOST="example.com"
+fi
+
 DIST="$ROOT/dist"
 if [ ! -d "$DIST" ]; then
   echo "Error: dist/ not found — run build first"
@@ -34,8 +40,16 @@ STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 cd "$DIST"
 git init -q
 git checkout -q -B main
+git config user.email "${DEPLOY_GIT_EMAIL:-deploy@$SITE_HOST}"
+git config user.name "${DEPLOY_GIT_NAME:-${SITE_NAME:-site} deploy}"
 git add -A
-git commit -q -m "deploy $STAMP"
+
+if git diff --cached --quiet; then
+  echo "deploy: no changes to commit"
+else
+  git commit -q -m "deploy $STAMP"
+fi
+
 git push --force "$PUBLIC_REPO" main
 
 echo "deployed: $STAMP → $PUBLIC_REPO"

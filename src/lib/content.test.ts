@@ -269,7 +269,7 @@ describe("loadAllFolders", () => {
     assert.equal(f.name, "sketch");
     assert.equal(f.slug, "sketch");
     assert.equal(f.title, "sketch"); // folder name as fallback
-    assert.equal(f.description, 'Browse entries in the "sketch" folder on conan.one.');
+    assert.equal(f.description, 'Browse entries in the "sketch" folder on example.com.');
     assert.ok(f.date); // derived from mtime
   });
 

@@ -10,4 +10,16 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 fi
 
 cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+  # shellcheck disable=SC1091
+  . ./.env
+fi
+
 pnpm build
+
+if [ -n "$CNAME_DOMAIN" ]; then
+  printf '%s\n' "$CNAME_DOMAIN" > dist/CNAME
+else
+  rm -f dist/CNAME
+fi

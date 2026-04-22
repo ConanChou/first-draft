@@ -6,12 +6,12 @@
 
 /** Rewrite inline #tag tokens to HTML links (outside code/pre) */
 export function rewriteHashtagsHtml(html: string): string {
-  // Only rewrite tags outside <code> and <pre> blocks
+  // Only rewrite tags outside <code>, <pre>, and existing links
   // After `>` covers #tag at the start of a paragraph (marked emits <p>#tag…)
   const HASHTAG = /(?<=[\s>]|^)#([A-Za-z\u4e00-\u9fff\u3040-\u30ff][A-Za-z0-9_\-\u4e00-\u9fff\u3040-\u30ff]*)/g;
-  // Simple approach: split on code blocks (already HTML-escaped at this point),
+  // Simple approach: split on protected blocks (already HTML-escaped at this point),
   // rewrite only in text segments
-  return splitOnCode(html, (text) =>
+  return splitOnProtectedHtml(html, (text) =>
     text.replace(
       HASHTAG,
       (_, tag) => `<a href="/tags/${tag}/">#${tag}</a>`
@@ -57,11 +57,11 @@ export function rewriteInternalLinksMd(md: string): string {
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-/** Apply transform to HTML text nodes outside <code>/<pre> tags */
-function splitOnCode(html: string, transform: (s: string) => string): string {
+/** Apply transform to HTML text nodes outside protected tags */
+function splitOnProtectedHtml(html: string, transform: (s: string) => string): string {
   return html.replace(
-    /(<(pre|code)[^>]*>[\s\S]*?<\/\2>)|([^<]+)/g,
-    (match, code) => (code ? match : transform(match))
+    /(<(pre|code|a)\b[^>]*>[\s\S]*?<\/\2>)|([^<]+)/g,
+    (match, protectedBlock) => (protectedBlock ? match : transform(match))
   );
 }
 

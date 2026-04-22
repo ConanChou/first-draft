@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
 import type { FontProfile } from "../lib/font-profile";
+import { getSiteName, getSiteOwner } from "../lib/site-config";
 import "../styles/global.css";
 
 interface Props {
@@ -21,7 +22,8 @@ const {
   fontProfile = "mixed",
 } = Astro.props;
 
-const siteTitle = "conan.one";
+const siteTitle = getSiteName();
+const siteOwner = getSiteOwner();
 const fullTitle = title === siteTitle ? siteTitle : `${title} — ${siteTitle}`;
 const LATIN_FONT_HREF = "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400;1,8..60,500;1,8..60,700&family=Inter:wght@400;500;700&display=swap";
 const CJK_FONT_HREF = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap";
@@ -43,8 +45,8 @@ const CJK_FONT_HREF = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wg
     {ogImage && <meta property="og:image" content={ogImage} />}
 
     <!-- RSS -->
-    <link rel="alternate" type="application/rss+xml" title="conan.one (zh)" href="/feed.zh.xml" />
-    <link rel="alternate" type="application/rss+xml" title="conan.one (en)" href="/feed.en.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${siteTitle} (zh)`} href="/feed.zh.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${siteTitle} (en)`} href="/feed.en.xml" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -84,7 +86,7 @@ const CJK_FONT_HREF = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wg
     </div>
 
     <a href="/" class="site-logo">
-      <img src="/logo.svg" alt="conan.one" width="40" height="40" />
+      <img src="/logo.svg" alt={siteTitle} width="40" height="40" />
     </a>
 
     <div class="site-wrap">
@@ -99,7 +101,7 @@ const CJK_FONT_HREF = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wg
     </div>
 
     <footer class="site-footer">
-      <span style="margin-left: auto">© {new Date().getFullYear()} Conan</span>
+      <span style="margin-left: auto">© {new Date().getFullYear()} {siteOwner}</span>
     </footer>
 
     <script>

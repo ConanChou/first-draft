@@ -1,6 +1,6 @@
 import type { APIRoute, GetStaticPathsResult } from "astro";
 import { loadAllEntries, type Entry } from "../lib/content";
-import { getSiteUrl } from "../lib/site-config";
+import { getSiteDescription, getSiteName, getSiteUrl } from "../lib/site-config";
 
 const FEED_LANGS = ["zh", "en"] as const;
 type FeedLang = (typeof FEED_LANGS)[number];
@@ -26,12 +26,14 @@ function renderItem(e: Entry, siteUrl: string): string {
 export const GET: APIRoute = ({ props }) => {
   const lang = props.lang as FeedLang;
   const siteUrl = getSiteUrl();
+  const siteName = getSiteName();
+  const siteDescription = getSiteDescription();
   const entries = loadAllEntries()
     .filter((e) => e.lang === lang)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 20);
 
-  const channelTitle = lang === "zh" ? "conan.one" : `conan.one (${lang})`;
+  const channelTitle = lang === "zh" ? siteName : `${siteName} (${lang})`;
   const items = entries.map((e) => renderItem(e, siteUrl)).join("");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -39,7 +41,7 @@ export const GET: APIRoute = ({ props }) => {
   <channel>
     <title>${channelTitle}</title>
     <link>${siteUrl}</link>
-    <description>conan.one — ${lang}</description>
+    <description>${siteDescription} (${lang})</description>
     <language>${lang}</language>
     <atom:link href="${siteUrl}/feed.${lang}.xml" rel="self" type="application/rss+xml" />
     ${items}

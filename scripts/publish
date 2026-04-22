@@ -143,14 +143,15 @@ if (newPath !== filePath) {
 }
 
 // ── Update front matter ───────────────────────────────────────────
-const newFm = {
-  title: resolvedTitle,
-  date:  resolvedDate,
-  slug:  resolvedSlug,
-  draft: false,
-  lang:  resolvedLang,
-  ...(fm.tags?.length ? { tags: fm.tags } : {}),
-};
+  const newFm = {
+    title: resolvedTitle,
+    date:  resolvedDate,
+    slug:  resolvedSlug,
+    draft: false,
+    lang:  resolvedLang,
+    ...(fm.tags?.length ? { tags: fm.tags } : {}),
+    ...(fm.desc !== undefined ? { desc: fm.desc } : {}),
+  };
 
 writeFileSync(newPath, stringifyFrontMatter(newFm, body));
 console.log(`published: ${newFilename}`);

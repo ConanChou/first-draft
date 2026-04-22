@@ -12,7 +12,7 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { loadEnv, scanMaxId } from "./_lib.mjs";
+import { loadEnv, scanMaxId, buildDraftTemplate } from "./_lib.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
@@ -67,19 +67,7 @@ if (existsSync(filePath)) {
   process.exit(1);
 }
 
-const template = [
-  "---",
-  `slug: `,
-  `draft: true`,
-  `lang: "${effectiveLang}"`,
-  `tags: []`,
-  `desc: ""`,
-  "---",
-  "",
-  "# ",
-].join("\n");
-
-writeFileSync(filePath, template);
+writeFileSync(filePath, buildDraftTemplate(effectiveLang));
 console.log(filePath);
 
 // Open in iA Writer (macOS only — no-op on other platforms)

@@ -7,10 +7,10 @@
  * Called by `publish` before build as a safety check.
  */
 
-import { lstatSync } from "node:fs";
+import { lstatSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { ROOT } from "./_lib.mjs";
+import { ROOT, loadEnv } from "./_lib.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
@@ -22,13 +22,17 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 }
 
 const linkPath = join(ROOT, "src", "content");
+const env = loadEnv();
+const iaPath = env.IA_WRITER_PATH ?? "";
 
 let stat = null;
 try { stat = lstatSync(linkPath); } catch { /* doesn't exist */ }
 
-if (stat?.isSymbolicLink()) {
+const linkLooksValid = stat?.isSymbolicLink() && iaPath && readlinkSync(linkPath) === iaPath;
+
+if (linkLooksValid) {
   console.log("fetch: src/content symlink ok");
 } else {
-  console.log("fetch: symlink missing — running link");
+  console.log("fetch: symlink missing or stale — running link");
   execFileSync(join(ROOT, "scripts", "link"), [], { stdio: "inherit" });
 }

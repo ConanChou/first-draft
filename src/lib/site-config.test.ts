@@ -2,10 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_LANG,
+  DEFAULT_SITE_OWNER,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_URL,
   getDefaultLang,
+  getSiteOwner,
   getSiteName,
   getSiteDescription,
   getSiteUrl,
@@ -32,11 +34,15 @@ describe("getSiteUrl", () => {
 
   it("falls back to default site url", () => {
     assert.equal(getSiteUrl({}), DEFAULT_SITE_URL);
-    assert.equal(DEFAULT_SITE_URL, "https://conan.one");
+    assert.equal(DEFAULT_SITE_URL, "https://example.com");
   });
 });
 
 describe("getSiteName", () => {
+  it("prefers explicit site name when set", () => {
+    assert.equal(getSiteName({ SITE_NAME: "Writing Garden", SITE_URL: "https://example.com" }), "Writing Garden");
+  });
+
   it("derives the hostname from site url", () => {
     assert.equal(getSiteName({ SITE_URL: "https://writing.example.com/posts/" }), "writing.example.com");
   });
@@ -51,7 +57,22 @@ describe("getSiteName", () => {
 
   it("falls back to default site name", () => {
     assert.equal(getSiteName({}), DEFAULT_SITE_NAME);
-    assert.equal(DEFAULT_SITE_NAME, "conan.one");
+    assert.equal(DEFAULT_SITE_NAME, "example.com");
+  });
+});
+
+describe("getSiteOwner", () => {
+  it("returns explicit site owner when set", () => {
+    assert.equal(getSiteOwner({ SITE_OWNER: "Jane Doe" }), "Jane Doe");
+  });
+
+  it("falls back to site name when owner is absent", () => {
+    assert.equal(getSiteOwner({ SITE_NAME: "Writing Garden" }), "Writing Garden");
+  });
+
+  it("falls back to default owner", () => {
+    assert.equal(getSiteOwner({}), DEFAULT_SITE_NAME);
+    assert.equal(DEFAULT_SITE_OWNER, "Site Owner");
   });
 });
 

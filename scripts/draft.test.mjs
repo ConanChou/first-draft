@@ -27,6 +27,7 @@ describe("draft", () => {
     assert.match(created, /\/\d{4}\.md$/);
     const content = readFileSync(created, "utf-8");
     assert.match(content, /lang: "zh"/);
+    assert.match(content, /desc: ""/);
   });
 
   it("creates NNNN.en.md with --lang en", () => {

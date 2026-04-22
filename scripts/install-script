@@ -3,7 +3,7 @@
  * install-script install [name]
  * install-script uninstall [name]
  *
- * Manages ~/.local/bin symlinks for conan.one scripts.
+ * Manages ~/.local/bin symlinks for site scripts.
  * BIN_DIR env var overrides the target directory (used in tests).
  */
 
