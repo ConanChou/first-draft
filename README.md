@@ -162,15 +162,31 @@ Language model:
 
 Local Micropub server lives in `scripts/micropub-server/`.
 
-Wrapper CLI:
+One-shot setup (macOS):
 
 ```sh
-node scripts/micropub install
-node scripts/micropub status
-node scripts/micropub logs --lines=100
+node scripts/micropub setup
 ```
 
-Current setup assumes macOS launchd service and local TLS reverse proxy. Good for personal workflow; not packaged yet as generic cross-platform service. This path works especially well with iA Writer, but core site flow does not depend on iA Writer specifically.
+Walks through: installing Caddy via Homebrew, trusting its local CA, building the
+Zig server, adding the `/etc/hosts` entry (one `sudo` prompt for this step only),
+installing the launchd plist, and rendering the Caddyfile with `MICROPUB_PORT`.
+Safe to re-run.
+
+Lifecycle CLI once set up:
+
+```sh
+node scripts/micropub launchd status
+node scripts/micropub launchd restart
+node scripts/micropub launchd logs --lines=100
+node scripts/micropub caddy install           # re-render Caddyfile if MICROPUB_PORT changes
+```
+
+The `launchd` subcommands (`install`, `uninstall`, `start`, `stop`, `restart`,
+`enable`, `disable`, `status`, `logs`) wrap `launchctl` calls against the
+micropub-server agent.
+
+Setup assumes macOS (launchd + Homebrew Caddy). Good for personal workflow; not yet packaged as a generic cross-platform service. Works well with iA Writer, but core site flow does not depend on iA Writer specifically.
 
 ## Testing
 
@@ -202,7 +218,6 @@ Good fit now:
 Still rough:
 
 - public README/docs still being shaped for outside users
-- Micropub setup still assumes local launchd/Caddy knowledge
 
 ## Docs
 

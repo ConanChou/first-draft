@@ -185,7 +185,7 @@ const config_response =
 // then uses that href for ?q=config and POST calls (which require auth).
 const discovery_html =
     \\<!DOCTYPE html><html><head>
-    \\<link rel="micropub" href="https://micropub.internal">
+    \\<link rel="micropub" href="https://firstdraftmicropub.internal">
     \\</head><body></body></html>
 ;
 

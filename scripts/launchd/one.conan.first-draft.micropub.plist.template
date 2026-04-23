@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>one.conan.micropub</string>
+    <string>one.conan.first-draft.micropub</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -12,7 +12,7 @@
     </array>
 
     <key>WorkingDirectory</key>
-    <string>CONAN_ONE_ROOT</string>
+    <string>FIRST_DRAFT_ROOT</string>
 
     <key>EnvironmentVariables</key>
     <dict>

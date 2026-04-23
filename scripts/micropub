@@ -3,15 +3,20 @@
  * micropub — lifecycle wrapper for the micropub-server LaunchAgent.
  *
  * Subcommands:
- *   install    copy plist to ~/Library/LaunchAgents/, bootstrap + enable
- *   uninstall  bootout + remove plist
- *   start      launchctl start
- *   stop       launchctl stop
- *   restart    launchctl kickstart -k
- *   enable     launchctl enable
- *   disable    launchctl disable
- *   status     launchctl print
- *   logs       tail err.log
+ *   setup            one-shot end-to-end setup (brew/caddy/zig/hosts/plist/Caddyfile)
+ *   caddy <cmd>      manage the local Caddy reverse proxy. <cmd> is one of:
+ *                      install    render fragment into brew etc dir, add import to Caddyfile
+ *                      uninstall  remove fragment + strip our import line from Caddyfile
+ *   launchd <cmd>    manage the LaunchAgent. <cmd> is one of:
+ *                      install    copy plist to ~/Library/LaunchAgents/, bootstrap + enable
+ *                      uninstall  bootout + remove plist
+ *                      start      launchctl bootstrap
+ *                      stop       launchctl bootout
+ *                      restart    bootout + bootstrap
+ *                      enable     launchctl enable
+ *                      disable    bootout + launchctl disable
+ *                      status     launchctl print
+ *                      logs       tail err.log
  */
 
 import { spawnSync } from "node:child_process";
@@ -24,9 +29,11 @@ import { homedir } from "node:os";
 const env = loadEnv();
 const MICROPUB_PORT = parseInt(env.MICROPUB_PORT ?? "4567", 10);
 
-const LABEL = "one.conan.micropub";
+const LABEL = "one.conan.first-draft.micropub";
+const HOST = "firstdraftmicropub.internal";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PLIST_SRC = join(ROOT, "scripts", "launchd", `${LABEL}.plist`);
+const PLIST_SRC = join(ROOT, "scripts", "launchd", `${LABEL}.plist.template`);
+const CADDYFILE_SRC = join(ROOT, "scripts", "launchd", "Caddyfile.template");
 const LAUNCH_AGENTS = join(homedir(), "Library", "LaunchAgents");
 const PLIST_DEST = join(LAUNCH_AGENTS, `${LABEL}.plist`);
 const LOG_DIR = join(homedir(), "Library", "Logs", LABEL);
@@ -34,7 +41,11 @@ const ERR_LOG = join(LOG_DIR, "err.log");
 const UID = process.getuid?.() ?? "";
 const SERVICE_TARGET = `gui/${UID}/${LABEL}`;
 
-const SUBCOMMANDS = [
+const TOP_SUBCOMMANDS = ["setup", "caddy", "launchd"];
+const CADDY_SUBCOMMANDS = ["install", "uninstall"];
+const CADDY_FRAGMENT_NAME = "firstdraft-micropub.caddy";
+const CADDY_MARKER = `# managed by scripts/micropub — firstdraft ${HOST}`;
+const LAUNCHD_SUBCOMMANDS = [
   "install",
   "uninstall",
   "start",
@@ -46,9 +57,78 @@ const SUBCOMMANDS = [
   "logs",
 ];
 
+function step(n, total, msg) {
+  process.stdout.write(`\n[${n}/${total}] ${msg}\n`);
+}
+
+function have(bin) {
+  return spawnSync("command", ["-v", bin], { shell: true, encoding: "utf-8" }).status === 0;
+}
+
+function caddyPaths() {
+  const brew = spawnSync("brew", ["--prefix"], { encoding: "utf-8" });
+  if (brew.status !== 0) {
+    process.stderr.write("brew not found — install Homebrew first\n");
+    process.exit(1);
+  }
+  const prefix = (brew.stdout ?? "").trim();
+  return {
+    main: join(prefix, "etc", "Caddyfile"),
+    fragment: join(prefix, "etc", CADDY_FRAGMENT_NAME),
+    fragmentName: CADDY_FRAGMENT_NAME,
+  };
+}
+
+/**
+ * Ensure the main Caddyfile has our `import` line. Appends a two-line managed
+ * block (marker + import) if not already present. Never rewrites unrelated
+ * content.
+ */
+function ensureImport(mainCaddyfile, fragmentName) {
+  const importLine = `import ${fragmentName}`;
+  const current = existsSync(mainCaddyfile) ? readFileSync(mainCaddyfile, "utf-8") : "";
+  if (current.split("\n").some((l) => l.trim() === importLine)) return;
+  const prefix = current && !current.endsWith("\n") ? "\n" : "";
+  const sep = current.trim() ? "\n" : "";
+  const appended = `${current}${prefix}${sep}${CADDY_MARKER}\n${importLine}\n`;
+  writeFileSync(mainCaddyfile, appended, "utf-8");
+}
+
+/**
+ * Strip our managed two-line block (marker + import) from the main Caddyfile.
+ * Returns true if anything was removed.
+ */
+function removeImport(mainCaddyfile, fragmentName) {
+  const importLine = `import ${fragmentName}`;
+  const lines = readFileSync(mainCaddyfile, "utf-8").split("\n");
+  const kept = [];
+  let removed = false;
+  for (let i = 0; i < lines.length; i++) {
+    // Remove "<marker>\n<import>" pair
+    if (lines[i] === CADDY_MARKER && lines[i + 1]?.trim() === importLine) {
+      i += 1;
+      removed = true;
+      continue;
+    }
+    // Also handle an unmarked import line (best effort)
+    if (lines[i].trim() === importLine) {
+      removed = true;
+      continue;
+    }
+    kept.push(lines[i]);
+  }
+  if (removed) writeFileSync(mainCaddyfile, kept.join("\n"), "utf-8");
+  return removed;
+}
+
 function usage() {
+  const top = TOP_SUBCOMMANDS.map((s) => `  ${s}`).join("\n");
+  const cd = CADDY_SUBCOMMANDS.map((s) => `    ${s}`).join("\n");
+  const ld = LAUNCHD_SUBCOMMANDS.map((s) => `    ${s}`).join("\n");
   process.stdout.write(
-    `Usage: micropub <subcommand>\n\nSubcommands:\n${SUBCOMMANDS.map((s) => `  ${s}`).join("\n")}\n`,
+    `Usage: micropub <subcommand>\n\nSubcommands:\n${top}\n\n` +
+      `caddy subcommands (use as \`micropub caddy <cmd>\`):\n${cd}\n\n` +
+      `launchd subcommands (use as \`micropub launchd <cmd>\`):\n${ld}\n`,
   );
 }
 
@@ -69,7 +149,81 @@ function killByPort(port) {
 
 function cmd(subcommand, extraArgs) {
   switch (subcommand) {
-    case "install": {
+    case "setup": {
+      const TOTAL = 7;
+      process.stdout.write(
+        `micropub setup — will configure the local Micropub stack.\n` +
+          `  hostname: https://${HOST}\n` +
+          `  port:     ${MICROPUB_PORT}\n` +
+          `Only step 5 (/etc/hosts) requires sudo; everything else runs as you.\n`,
+      );
+
+      step(1, TOTAL, "checking prerequisites (brew, zig)…");
+      if (!have("brew")) {
+        process.stderr.write("Homebrew not found. Install from https://brew.sh and re-run.\n");
+        process.exit(1);
+      }
+      if (!have("zig")) {
+        process.stderr.write("Zig not found. Install with `brew install zig` and re-run.\n");
+        process.exit(1);
+      }
+      process.stdout.write("ok\n");
+
+      step(2, TOTAL, "installing + starting Caddy via Homebrew…");
+      spawnSync("brew", ["install", "caddy"], { stdio: "inherit" });
+      spawnSync("brew", ["services", "start", "caddy"], { stdio: "inherit" });
+
+      step(3, TOTAL, "trusting Caddy's local CA (Caddy may prompt for admin password)…");
+      const trust = spawnSync("caddy", ["trust"], { stdio: "inherit" });
+      if (trust.status !== 0) {
+        process.stdout.write("note: `caddy trust` returned non-zero — continuing, but TLS clients may reject the cert.\n");
+      }
+
+      step(4, TOTAL, "building the Zig micropub-server binary…");
+      const zigDir = join(ROOT, "scripts", "micropub-server");
+      const zigBuild = spawnSync("zig", ["build", "-Doptimize=ReleaseSafe"], {
+        cwd: zigDir,
+        stdio: "inherit",
+      });
+      if (zigBuild.status !== 0) {
+        process.stderr.write("zig build failed — aborting setup.\n");
+        process.exit(1);
+      }
+
+      step(5, TOTAL, `ensuring /etc/hosts maps ${HOST} to 127.0.0.1…`);
+      const hostsContents = readFileSync("/etc/hosts", "utf-8");
+      const hostRe = new RegExp(`^[^#\\n]*\\b${HOST.replace(/\./g, "\\.")}\\b`, "m");
+      if (hostRe.test(hostsContents)) {
+        process.stdout.write(`already present — skipping sudo\n`);
+      } else {
+        process.stdout.write(`not present — will append via sudo (password prompt follows)\n`);
+        const line = `127.0.0.1  ${HOST}`;
+        const r = spawnSync(
+          "sh",
+          ["-c", `printf '\\n%s\\n' ${JSON.stringify(line)} | sudo tee -a /etc/hosts > /dev/null`],
+          { stdio: "inherit" },
+        );
+        if (r.status !== 0) {
+          process.stderr.write("failed to update /etc/hosts — aborting.\n");
+          process.exit(1);
+        }
+        spawnSync("sudo", ["dscacheutil", "-flushcache"], { stdio: "inherit" });
+      }
+
+      step(6, TOTAL, "installing launchd plist for micropub-server…");
+      cmd("launchd:install", []);
+
+      step(7, TOTAL, "rendering Caddyfile with MICROPUB_PORT and reloading Caddy…");
+      cmd("caddy:install", []);
+
+      process.stdout.write(
+        `\nsetup complete.\n` +
+          `  Micropub endpoint: https://${HOST}/\n` +
+          `  point your writing app's Micropub URL there, use MICROPUB_TOKEN as the bearer token.\n`,
+      );
+      break;
+    }
+    case "launchd:install": {
       if (!existsSync(PLIST_SRC)) {
         process.stderr.write(`plist not found: ${PLIST_SRC}\n`);
         process.exit(1);
@@ -80,7 +234,7 @@ function cmd(subcommand, extraArgs) {
       // Substitute placeholders in plist template
       const plistContent = readFileSync(PLIST_SRC, "utf-8")
         .replace(/MICROPUB_SERVER_BIN/g, SERVER_BIN)
-        .replace(/CONAN_ONE_ROOT/g, ROOT)
+        .replace(/FIRST_DRAFT_ROOT/g, ROOT)
         .replace(/LOG_DIR/g, LOG_DIR)
         .replace(/SHELL_PATH/g, process.env.PATH ?? "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin");
       writeFileSync(PLIST_DEST, plistContent, "utf-8");
@@ -93,7 +247,7 @@ function cmd(subcommand, extraArgs) {
       process.stdout.write(`installed: ${PLIST_DEST}\n`);
       break;
     }
-    case "uninstall": {
+    case "launchd:uninstall": {
       launchctl("bootout", `gui/${UID}`, PLIST_DEST);
       if (existsSync(PLIST_DEST)) {
         unlinkSync(PLIST_DEST);
@@ -101,15 +255,15 @@ function cmd(subcommand, extraArgs) {
       process.stdout.write(`uninstalled: ${PLIST_DEST}\n`);
       break;
     }
-    case "start":
+    case "launchd:start":
       // bootstrap re-loads the plist and starts the service
       if (!existsSync(PLIST_DEST)) {
-        process.stderr.write(`plist not installed — run 'micropub install' first\n`);
+        process.stderr.write(`plist not installed — run 'micropub launchd install' first\n`);
         process.exit(1);
       }
       launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
       break;
-    case "stop": {
+    case "launchd:stop": {
       // bootout fully unloads (respects KeepAlive — won't respawn)
       const r = launchctl("bootout", `gui/${UID}`, PLIST_DEST);
       if (r.status !== 0) {
@@ -119,24 +273,62 @@ function cmd(subcommand, extraArgs) {
       }
       break;
     }
-    case "restart":
+    case "launchd:restart":
       launchctl("bootout", `gui/${UID}`, PLIST_DEST);
       launchctl("bootstrap", `gui/${UID}`, PLIST_DEST);
       break;
-    case "enable":
+    case "launchd:enable":
       launchctl("enable", SERVICE_TARGET);
       break;
-    case "disable":
+    case "launchd:disable":
       // bootout stops + unloads; disable prevents auto-start on next login
       launchctl("bootout", `gui/${UID}`, PLIST_DEST);
       launchctl("disable", SERVICE_TARGET);
       break;
-    case "status":
+    case "launchd:status":
       launchctl("print", SERVICE_TARGET);
       break;
-    case "logs": {
+    case "launchd:logs": {
       const lines = extraArgs.find((a) => a.startsWith("--lines="))?.split("=")[1] ?? "50";
       spawnSync("tail", ["-n", lines, ERR_LOG], { stdio: "inherit" });
+      break;
+    }
+    case "caddy:install": {
+      if (!existsSync(CADDYFILE_SRC)) {
+        process.stderr.write(`Caddyfile template not found: ${CADDYFILE_SRC}\n`);
+        process.exit(1);
+      }
+      const paths = caddyPaths();
+      const rendered = readFileSync(CADDYFILE_SRC, "utf-8").replace(
+        /MICROPUB_PORT/g,
+        String(MICROPUB_PORT),
+      );
+      writeFileSync(paths.fragment, rendered, "utf-8");
+      process.stdout.write(`wrote: ${paths.fragment}\n`);
+      ensureImport(paths.main, paths.fragmentName);
+      process.stdout.write(`import line ensured in: ${paths.main}\n`);
+      const reload = spawnSync("brew", ["services", "reload", "caddy"], { stdio: "inherit" });
+      if (reload.status !== 0) {
+        process.stdout.write("note: 'brew services reload caddy' failed — start caddy manually\n");
+      }
+      break;
+    }
+    case "caddy:uninstall": {
+      const paths = caddyPaths();
+      if (existsSync(paths.fragment)) {
+        unlinkSync(paths.fragment);
+        process.stdout.write(`removed: ${paths.fragment}\n`);
+      } else {
+        process.stdout.write(`already gone: ${paths.fragment}\n`);
+      }
+      if (existsSync(paths.main)) {
+        const removed = removeImport(paths.main, paths.fragmentName);
+        if (removed) process.stdout.write(`stripped import line from: ${paths.main}\n`);
+      }
+      const reload = spawnSync("brew", ["services", "reload", "caddy"], { stdio: "inherit" });
+      if (reload.status !== 0) {
+        process.stdout.write("note: 'brew services reload caddy' failed — reload caddy manually\n");
+      }
       break;
     }
     default:
@@ -155,4 +347,23 @@ if (!subcommand || subcommand === "--help" || subcommand === "-h") {
   process.exit(subcommand ? 0 : 1);
 }
 
-cmd(subcommand, rest);
+function dispatchGroup(group, subs) {
+  const [sub, ...subRest] = rest;
+  if (!sub || !subs.includes(sub)) {
+    process.stderr.write(`usage: micropub ${group} <${subs.join("|")}>\n`);
+    process.exit(1);
+  }
+  cmd(`${group}:${sub}`, subRest);
+}
+
+if (subcommand === "launchd") {
+  dispatchGroup("launchd", LAUNCHD_SUBCOMMANDS);
+} else if (subcommand === "caddy") {
+  dispatchGroup("caddy", CADDY_SUBCOMMANDS);
+} else if (TOP_SUBCOMMANDS.includes(subcommand)) {
+  cmd(subcommand, rest);
+} else {
+  process.stderr.write(`unknown subcommand: ${subcommand}\n\n`);
+  usage();
+  process.exit(1);
+}

@@ -463,7 +463,7 @@ Purpose: let a Micropub-capable writing app kick off the local publish pipeline.
 Current behavior:
 
 - Zig server binds `127.0.0.1:$MICROPUB_PORT`
-- Caddy terminates TLS for `https://micropub.internal`
+- Caddy terminates TLS for `https://firstdraftmicropub.internal`
 - unauthenticated `GET /` returns discovery HTML with Micropub link
 - authenticated `GET` returns minimal config JSON
 - authenticated `POST /` or `POST /micropub`:
@@ -482,33 +482,58 @@ Important consequence:
 One-time machine setup:
 
 ```sh
-brew install caddy
-ln -sf /path/to/first-draft/scripts/launchd/Caddyfile /opt/homebrew/etc/Caddyfile
-brew services start caddy
-caddy trust
+node scripts/micropub setup
 ```
 
-`scripts/launchd/Caddyfile`:
+`setup` is end-to-end and safe to re-run. It:
+
+1. checks for `brew` and `zig`
+2. `brew install caddy` + `brew services start caddy`
+3. `caddy trust` (may prompt for admin password — handled by Caddy itself)
+4. builds `scripts/micropub-server` with `zig build -Doptimize=ReleaseSafe`
+5. appends `127.0.0.1 firstdraftmicropub.internal` to `/etc/hosts` if missing
+   (single `sudo` prompt; skipped when already present)
+6. installs the launchd plist (`micropub install`)
+7. renders the Caddyfile from `.env` and reloads Caddy (`micropub caddy install`)
+
+Everything outside step 5 runs as the current user.
+
+`scripts/micropub caddy install` is also exposed directly — re-run whenever
+`MICROPUB_PORT` changes. It:
+
+- renders `scripts/launchd/Caddyfile.template` with `MICROPUB_PORT` substituted
+  from `.env`, writes the result to `$(brew --prefix)/etc/firstdraft-micropub.caddy`
+  (a dedicated fragment we fully own)
+- ensures the main `$(brew --prefix)/etc/Caddyfile` contains a single
+  `import firstdraft-micropub.caddy` line, preceded by a marker comment so we
+  can safely remove it later
+- runs `brew services reload caddy`
+
+`scripts/micropub caddy uninstall` deletes the fragment file and strips exactly
+the marker + import lines from the main Caddyfile, leaving any other user
+config intact.
+
+`scripts/launchd/Caddyfile.template` (`MICROPUB_PORT` is the placeholder):
 
 ```caddy
-micropub.internal {
+firstdraftmicropub.internal {
     tls internal
-    reverse_proxy 127.0.0.1:4567
+    reverse_proxy 127.0.0.1:MICROPUB_PORT
 }
 ```
 
 `/etc/hosts` needs:
 
 ```hosts
-127.0.0.1  micropub.internal
+127.0.0.1  firstdraftmicropub.internal
 ```
 
 ### 9.7 launchd lifecycle
 
-- label: `one.conan.micropub`
-- plist template: `scripts/launchd/one.conan.micropub.plist`
-- logs: `~/Library/Logs/one.conan.micropub/{out.log,err.log}`
-- `scripts/micropub` owns install/start/stop/status flow
+- label: `one.conan.first-draft.micropub`
+- plist template: `scripts/launchd/one.conan.first-draft.micropub.plist.template`
+- logs: `~/Library/Logs/one.conan.first-draft.micropub/{out.log,err.log}`
+- `scripts/micropub launchd <install|uninstall|start|stop|restart|enable|disable|status|logs>` owns the lifecycle flow
 
 ---
 
@@ -567,8 +592,8 @@ first-draft/
     install-script
     micropub
     launchd/
-      Caddyfile
-      one.conan.micropub.plist
+      Caddyfile.template
+      one.conan.first-draft.micropub.plist.template
     micropub-server/
       build.zig
       build.zig.zon
