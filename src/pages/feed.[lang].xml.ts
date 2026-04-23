@@ -1,12 +1,9 @@
 import type { APIRoute, GetStaticPathsResult } from "astro";
-import { loadAllEntries, type Entry } from "../lib/content";
-import { getSiteDescription, getSiteName, getSiteUrl } from "../lib/site-config";
-
-const FEED_LANGS = ["zh", "en"] as const;
-type FeedLang = (typeof FEED_LANGS)[number];
+import { getAvailableLangs, loadAllEntries, type Entry } from "../lib/content";
+import { getDefaultLang, getSiteDescription, getSiteName, getSiteUrl } from "../lib/site-config";
 
 export function getStaticPaths(): GetStaticPathsResult {
-  return FEED_LANGS.map((lang) => ({
+  return getAvailableLangs().map((lang) => ({
     params: { lang },
     props: { lang },
   }));
@@ -24,16 +21,17 @@ function renderItem(e: Entry, siteUrl: string): string {
 }
 
 export const GET: APIRoute = ({ props }) => {
-  const lang = props.lang as FeedLang;
+  const lang = String(props.lang);
   const siteUrl = getSiteUrl();
   const siteName = getSiteName();
   const siteDescription = getSiteDescription();
+  const defaultLang = getDefaultLang();
   const entries = loadAllEntries()
     .filter((e) => e.lang === lang)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 20);
 
-  const channelTitle = lang === "zh" ? siteName : `${siteName} (${lang})`;
+  const channelTitle = lang === defaultLang ? siteName : `${siteName} (${lang})`;
   const items = entries.map((e) => renderItem(e, siteUrl)).join("");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

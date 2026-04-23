@@ -6,6 +6,7 @@
 import {
   readFileSync, readdirSync, statSync, existsSync,
 } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,13 +19,46 @@ const FM_ORDER = ["title", "date", "slug", "draft", "lang", "tags", "desc"];
 // ── .env ──────────────────────────────────────────────────────────
 export function loadEnv() {
   const path = join(ROOT, ".env");
-  if (!existsSync(path)) return {};
   const env = {};
-  for (const line of readFileSync(path, "utf-8").split("\n")) {
-    const m = line.match(/^([A-Z_]+)="?([^"]*)"?/);
-    if (m) env[m[1]] = m[2];
+  if (existsSync(path)) {
+    for (const line of readFileSync(path, "utf-8").split("\n")) {
+      const m = line.match(/^([A-Z_]+)="?([^"]*)"?/);
+      if (m) env[m[1]] = m[2];
+    }
   }
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (/^[A-Z_]+$/.test(key) && typeof value === "string") {
+      env[key] = value;
+    }
+  }
+
   return env;
+}
+
+export function getContentPath(env = loadEnv()) {
+  return env.CONTENT_PATH ?? "";
+}
+
+export function getEditorOpenSpec(filePath, env = loadEnv()) {
+  const openCommand = env.OPEN_EDITOR_COMMAND?.trim();
+  if (openCommand) {
+    return {
+      cmd: "sh",
+      args: ["-lc", `${openCommand} "$1"`, "open-editor", filePath],
+    };
+  }
+
+  return { cmd: "open", args: [filePath] };
+}
+
+export function openInEditor(filePath, env = loadEnv()) {
+  const { cmd, args } = getEditorOpenSpec(filePath, env);
+  try {
+    execFileSync(cmd, args, { stdio: "ignore" });
+  } catch {
+    // No-op when no GUI opener exists or the configured command fails.
+  }
 }
 
 // ── Front matter ─────────────────────────────────────────────────
@@ -159,7 +193,7 @@ export function scanMaxId(iaPath) {
 // ── Find files by ID ──────────────────────────────────────────────
 export function findById(iaPath, id, lang = null) {
   const padded = String(parseInt(id, 10)).padStart(4, "0");
-  const defaultLang = loadEnv().DEFAULT_LANG ?? "zh";
+  const defaultLang = loadEnv().DEFAULT_LANG ?? "en";
   return walkMd(iaPath).filter(f => {
     const p = parseFilename(f);
     if (!p || p.id !== padded) return false;

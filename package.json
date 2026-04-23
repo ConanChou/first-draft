@@ -1,5 +1,5 @@
 {
-  "name": "conan-one",
+  "name": "first-draft",
   "type": "module",
   "private": true,
   "scripts": {
@@ -9,17 +9,15 @@
     "astro": "astro",
     "test": "node --test 'scripts/**/*.test.mjs' && node --import tsx/esm --test 'src/lib/**/*.test.ts'",
     "test:scripts": "node --test 'scripts/**/*.test.mjs'",
-    "test:scripts:pre-commit": "node --test scripts/_lib.test.mjs scripts/build.test.mjs scripts/deploy.test.mjs scripts/fetch.test.mjs scripts/install-script.test.mjs scripts/link.test.mjs scripts/micropub.test.mjs scripts/publish.test.mjs",
+    "test:scripts:pre-commit": "node --test scripts/_lib.test.mjs scripts/build.test.mjs scripts/deploy.test.mjs scripts/install-script.test.mjs scripts/link.test.mjs scripts/micropub.test.mjs scripts/publish.test.mjs",
     "test:pre-commit": "pnpm test:scripts:pre-commit && pnpm test:lib",
     "test:lib": "node --import tsx/esm --test 'src/lib/**/*.test.ts'",
     "test:zig": "cd scripts/micropub-server && zig build test --summary all"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
-    "@tailwindcss/vite": "^4.2.2",
     "astro": "^6.1.6",
-    "marked": "^15.0.12",
-    "tailwindcss": "^4.2.2"
+    "marked": "^15.0.12"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",

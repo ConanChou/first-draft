@@ -35,7 +35,7 @@ function rewriteHtml(html: string, lang: string): string {
 
 export async function renderMd(
   body: string,
-  lang: string = "zh",
+  lang: string = "en",
 ): Promise<string> {
   const { md: processedMd, footnotes } = processFootnotes(stripLeadingH1(body));
   const raw = await marked.parse(processedMd);

@@ -10,7 +10,7 @@ const DRAFT = new URL("./draft", import.meta.url).pathname;
 function run(args, iaPath) {
   return spawnSync(process.execPath, [DRAFT, ...args], {
     encoding: "utf-8",
-    env: { ...process.env, IA_WRITER_PATH: iaPath },
+    env: { ...process.env, CONTENT_PATH: iaPath, DEFAULT_LANG: "en" },
     timeout: 5000,
   });
 }
@@ -26,44 +26,62 @@ describe("draft", () => {
     const created = r.stdout.trim();
     assert.match(created, /\/\d{4}\.md$/);
     const content = readFileSync(created, "utf-8");
-    assert.match(content, /lang: "zh"/);
+    assert.match(content, /lang: "en"/);
     assert.match(content, /desc: ""/);
   });
 
-  it("creates NNNN.en.md with --lang en", () => {
+  it("creates NNNN.zh.md with --lang zh", () => {
     // seed a file so ID advances
     writeFileSync(join(tmp, "0001.md"), "");
-    const r = run(["--lang", "en"], tmp);
+    const r = run(["--lang", "zh"], tmp);
     assert.equal(r.status, 0, r.stderr);
     const created = r.stdout.trim();
-    assert.match(created, /\/\d{4}\.en\.md$/);
+    assert.match(created, /\/\d{4}\.zh\.md$/);
     const content = readFileSync(created, "utf-8");
-    assert.match(content, /lang: "en"/);
+    assert.match(content, /lang: "zh"/);
   });
 
-  it("--lang zh still produces NNNN.md (no suffix for default)", () => {
-    const r = run(["--lang", "zh"], tmp);
+  it("--lang en still produces NNNN.md (no suffix for default)", () => {
+    const r = run(["--lang", "en"], tmp);
     assert.equal(r.status, 0, r.stderr);
     const created = r.stdout.trim();
     assert.match(created, /\/\d{4}\.md$/);
     const content = readFileSync(created, "utf-8");
-    assert.match(content, /lang: "zh"/);
-  });
-
-  it("--lang en with folder creates file in subdirectory", () => {
-    const r = run(["--lang", "en", "sketch"], tmp);
-    assert.equal(r.status, 0, r.stderr);
-    const created = r.stdout.trim();
-    assert.match(created, /\/sketch\/\d{4}\.en\.md$/);
-    const content = readFileSync(created, "utf-8");
     assert.match(content, /lang: "en"/);
   });
 
-  it("folder before --lang also works", () => {
-    const r = run(["notes", "--lang", "en"], tmp);
+  it("--lang zh with folder creates file in subdirectory", () => {
+    const r = run(["--lang", "zh", "sketch"], tmp);
     assert.equal(r.status, 0, r.stderr);
     const created = r.stdout.trim();
-    assert.match(created, /\/notes\/\d{4}\.en\.md$/);
+    assert.match(created, /\/sketch\/\d{4}\.zh\.md$/);
+    const content = readFileSync(created, "utf-8");
+    assert.match(content, /lang: "zh"/);
+  });
+
+  it("folder before --lang also works", () => {
+    const r = run(["notes", "--lang", "zh"], tmp);
+    assert.equal(r.status, 0, r.stderr);
+    const created = r.stdout.trim();
+    assert.match(created, /\/notes\/\d{4}\.zh\.md$/);
+  });
+
+  it("--translate reuses existing id and defaults to same folder", () => {
+    writeFileSync(join(tmp, "0042.md"), "# Source");
+    const r = run(["--translate", "42", "--lang", "zh"], tmp);
+    assert.equal(r.status, 0, r.stderr);
+    const created = r.stdout.trim();
+    assert.match(created, /\/0042\.zh\.md$/);
+    const content = readFileSync(created, "utf-8");
+    assert.match(content, /lang: "zh"/);
+  });
+
+  it("--translate with --folder writes translation to target folder", () => {
+    writeFileSync(join(tmp, "0042.md"), "# Source");
+    const r = run(["--translate", "42", "--lang", "zh", "--folder", "essays"], tmp);
+    assert.equal(r.status, 0, r.stderr);
+    const created = r.stdout.trim();
+    assert.match(created, /\/essays\/0042\.zh\.md$/);
   });
 
   it("--help prints usage and exits 0", () => {
@@ -84,13 +102,26 @@ describe("draft", () => {
     assert.match(r.stderr, /--lang requires/i);
   });
 
-  it("errors on missing IA_WRITER_PATH", () => {
+  it("errors when --translate has no value", () => {
+    const r = run(["--translate"], tmp);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /--translate requires/i);
+  });
+
+  it("errors when --translate is missing --lang", () => {
+    writeFileSync(join(tmp, "0042.md"), "# Source");
+    const r = run(["--translate", "42"], tmp);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /--lang/i);
+  });
+
+  it("errors on missing CONTENT_PATH", () => {
     const r = spawnSync(process.execPath, [DRAFT], {
       encoding: "utf-8",
-      env: { ...process.env, IA_WRITER_PATH: "" },
+      env: { ...process.env, CONTENT_PATH: "" },
       timeout: 5000,
     });
     assert.notEqual(r.status, 0);
-    assert.match(r.stderr, /IA_WRITER_PATH/);
+    assert.match(r.stderr, /CONTENT_PATH/);
   });
 });

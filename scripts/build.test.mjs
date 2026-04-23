@@ -81,6 +81,18 @@ describe("build", () => {
     assert.match(r.pnpmLog, /^build$/m);
   });
 
+  it("falls back to SITE_URL host when CNAME_DOMAIN is unset", () => {
+    const r = runInTempRoot('SITE_URL="https://conan.one"\n');
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(readFileSync(join(r.root, "dist", "CNAME"), "utf-8"), "conan.one\n");
+  });
+
+  it("does not write CNAME for github.io host when CNAME_DOMAIN is unset", () => {
+    const r = runInTempRoot('SITE_URL="https://user.github.io"\n');
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(existsSync(join(r.root, "dist", "CNAME")), false);
+  });
+
   it("removes stale dist/CNAME when CNAME_DOMAIN is unset", () => {
     const r = runInTempRoot("");
     assert.equal(r.status, 0, r.stderr);

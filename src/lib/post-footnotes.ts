@@ -1,10 +1,39 @@
 import { shouldHandleFootnoteItemClick } from "./footnote-nav";
 
 const SIDENOTE_MIN_WIDTH = 1060;
+const SIDENOTE_WIDTH_PX = 210;
+const SIDENOTE_GAP_REM = 2.5;
+const SIDENOTE_SAFETY_PX = 8;
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
-function isSidenoteMode(): boolean {
-  return window.innerWidth >= SIDENOTE_MIN_WIDTH;
+export function canUseSidenotes({
+  viewportWidth,
+  postBodyRight,
+  requiredRightGutter,
+}: {
+  viewportWidth: number;
+  postBodyRight: number;
+  requiredRightGutter: number;
+}): boolean {
+  if (viewportWidth < SIDENOTE_MIN_WIDTH) return false;
+
+  return viewportWidth - postBodyRight >= requiredRightGutter;
+}
+
+function getRequiredRightGutter(): number {
+  const rootFontSize = Number.parseFloat(
+    getComputedStyle(document.documentElement).fontSize,
+  );
+
+  return SIDENOTE_WIDTH_PX + rootFontSize * SIDENOTE_GAP_REM + SIDENOTE_SAFETY_PX;
+}
+
+function isSidenoteMode(postBody: HTMLElement): boolean {
+  return canUseSidenotes({
+    viewportWidth: window.innerWidth,
+    postBodyRight: postBody.getBoundingClientRect().right,
+    requiredRightGutter: getRequiredRightGutter(),
+  });
 }
 
 function getOffsetFromParent(el: HTMLElement, parent: HTMLElement): number {
@@ -17,9 +46,13 @@ function buildSidenotes() {
   const postBody = document.querySelector<HTMLElement>(".post-body");
   if (!postBody) return;
 
+  const root = document.documentElement;
   postBody.querySelectorAll(".sidenote").forEach((sidenote) => sidenote.remove());
 
-  if (!isSidenoteMode()) return;
+  const sidenoteMode = isSidenoteMode(postBody);
+  root.classList.toggle("has-sidenotes", sidenoteMode);
+
+  if (!sidenoteMode) return;
 
   const items = document.querySelectorAll<HTMLElement>(".footnote-item");
   if (!items.length) return;
@@ -79,7 +112,8 @@ export function initPostFootnotes() {
 
   document.querySelectorAll<HTMLAnchorElement>(".fn-ref a").forEach((link) => {
     link.addEventListener("click", (event) => {
-      if (isSidenoteMode()) return;
+      const postBody = document.querySelector<HTMLElement>(".post-body");
+      if (postBody && isSidenoteMode(postBody)) return;
 
       const href = link.getAttribute("href");
       if (!href) return;
@@ -94,7 +128,8 @@ export function initPostFootnotes() {
 
   document.querySelectorAll<HTMLElement>(".footnote-item").forEach((item) => {
     item.addEventListener("click", (event) => {
-      if (isSidenoteMode()) return;
+      const postBody = document.querySelector<HTMLElement>(".post-body");
+      if (postBody && isSidenoteMode(postBody)) return;
       if (!shouldHandleFootnoteItemClick(event.target)) return;
 
       event.preventDefault();

@@ -6,7 +6,7 @@ type SiteEnv = {
   SITE_URL?: string;
 };
 
-export const DEFAULT_LANG = "zh";
+export const DEFAULT_LANG = "en";
 export const DEFAULT_SITE_DESCRIPTION = "A calm, text-first publishing system.";
 export const DEFAULT_SITE_URL = "https://example.com";
 export const DEFAULT_SITE_NAME = "example.com";

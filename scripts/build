@@ -18,8 +18,20 @@ fi
 
 pnpm build
 
-if [ -n "$CNAME_DOMAIN" ]; then
-  printf '%s\n' "$CNAME_DOMAIN" > dist/CNAME
+resolved_cname="$CNAME_DOMAIN"
+
+if [ -z "$resolved_cname" ] && [ -n "$SITE_URL" ]; then
+  resolved_cname="${SITE_URL#*://}"
+  resolved_cname="${resolved_cname%%/*}"
+  resolved_cname="${resolved_cname%%:*}"
+
+  case "$resolved_cname" in
+    github.io|*.github.io) resolved_cname="" ;;
+  esac
+fi
+
+if [ -n "$resolved_cname" ]; then
+  printf '%s\n' "$resolved_cname" > dist/CNAME
 else
   rm -f dist/CNAME
 fi

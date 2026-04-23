@@ -1,8 +1,8 @@
 /**
- * Content loader — reads the src/content/ tree populated by `scripts/fetch`.
+ * Content loader — reads the src/content/ tree managed by `scripts/link`.
  *
  * Each file must have a 4-digit numeric prefix (e.g. 0042-on-writing.md).
- * Drafts (bare NNNN.md or front-matter draft:true) are excluded by `fetch`.
+ * Drafts (bare NNNN.md or front-matter draft:true) are excluded at load time.
  *
  * This module:
  *  - parses front matter
@@ -347,6 +347,12 @@ export function getEntryById(id: string, lang?: string): Entry | undefined {
   const all = loadAllEntries().filter((e) => e.id === id);
   if (lang) return all.find((e) => e.lang === lang) ?? all[0];
   return all[0];
+}
+
+export function getAvailableLangs(entries: Entry[] = loadAllEntries()): string[] {
+  const langs = [...new Set(entries.map((entry) => entry.lang))];
+  const rest = langs.filter((lang) => lang !== DEFAULT_LANG).sort();
+  return langs.includes(DEFAULT_LANG) ? [DEFAULT_LANG, ...rest] : rest;
 }
 
 export function getAllTags(): Map<string, Entry[]> {

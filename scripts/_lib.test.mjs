@@ -7,6 +7,8 @@ import {
   parseFrontMatter,
   stringifyFrontMatter,
   buildDraftTemplate,
+  getContentPath,
+  getEditorOpenSpec,
   slugify,
   parseFilename,
   formatDateISO,
@@ -99,6 +101,38 @@ describe("buildDraftTemplate", () => {
     assert.match(template, /tags: \[\]/);
     assert.match(template, /desc: ""/);
     assert.match(template, /# $/);
+  });
+});
+
+describe("getContentPath", () => {
+  it("reads CONTENT_PATH", () => {
+    assert.equal(
+      getContentPath({ CONTENT_PATH: "/tmp/content" }),
+      "/tmp/content",
+    );
+  });
+
+  it("returns empty string when neither env key is set", () => {
+    assert.equal(getContentPath({}), "");
+  });
+});
+
+describe("getEditorOpenSpec", () => {
+  it("uses configured open command and appends file path", () => {
+    assert.deepEqual(
+      getEditorOpenSpec("/tmp/post.md", { OPEN_EDITOR_COMMAND: 'open -a "iA Writer"' }),
+      {
+        cmd: "sh",
+        args: ["-lc", 'open -a "iA Writer" "$1"', "open-editor", "/tmp/post.md"],
+      },
+    );
+  });
+
+  it("falls back to system open", () => {
+    assert.deepEqual(
+      getEditorOpenSpec("/tmp/post.md", {}),
+      { cmd: "open", args: ["/tmp/post.md"] },
+    );
   });
 });
 

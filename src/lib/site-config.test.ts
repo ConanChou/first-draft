@@ -81,8 +81,8 @@ describe("getDefaultLang", () => {
     assert.equal(getDefaultLang({ DEFAULT_LANG: "en" }), "en");
   });
 
-  it("falls back to zh", () => {
+  it("falls back to en", () => {
     assert.equal(getDefaultLang({}), DEFAULT_LANG);
-    assert.equal(DEFAULT_LANG, "zh");
+    assert.equal(DEFAULT_LANG, "en");
   });
 });

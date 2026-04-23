@@ -17,6 +17,14 @@ describe("processFootnotes", () => {
     );
   });
 
+  it("keeps inline ref attached to preceding text across line wraps", () => {
+    const { md } = processFootnotes("Text[^1] more.\n\n[^1]: Content.");
+    assert.ok(
+      md.includes('Text\u2060<sup class="fn-ref" id="fnref-1"><a href="#fn-1">1</a></sup>'),
+      `got: ${md}`,
+    );
+  });
+
   it("removes definition lines from output md", () => {
     const { md } = processFootnotes("Text[^1] more.\n\n[^1]: Content.");
     assert.ok(!md.includes("[^1]:"), `got: ${md}`);

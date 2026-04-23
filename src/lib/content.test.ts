@@ -10,6 +10,7 @@ import {
   extractFirstHeading,
   extractFirstParagraph,
   buildFolderDescription,
+  getAvailableLangs,
   loadAllFolders,
   type Entry,
 } from "./content.js";
@@ -29,7 +30,7 @@ describe("parseFilename", () => {
     assert.ok(p);
     assert.equal(p.id, "0042");
     assert.equal(p.slug, "0042-on-writing");
-    assert.equal(p.lang, process.env.DEFAULT_LANG ?? "zh");
+    assert.equal(p.lang, process.env.DEFAULT_LANG ?? "en");
   });
 
   it("parses translation NNNN-slug.en.md", () => {
@@ -311,5 +312,25 @@ Intro paragraph here.`,
     assert.equal(result.length, 1);
     assert.equal(result[0]!.children.length, 1);
     assert.equal((result[0]!.children[0] as Entry).slug, "0001-in-sketch");
+  });
+});
+
+describe("getAvailableLangs", () => {
+  it("returns default lang first, then other langs sorted", () => {
+    const langs = getAvailableLangs([
+      makeEntry({ lang: "zh" }),
+      makeEntry({ id: "0002", lang: "en" }),
+      makeEntry({ id: "0003", lang: "ja" }),
+      makeEntry({ id: "0004", lang: "zh" }),
+    ]);
+    assert.deepEqual(langs, ["en", "ja", "zh"]);
+  });
+
+  it("omits default lang when no entry uses it", () => {
+    const langs = getAvailableLangs([
+      makeEntry({ lang: "zh" }),
+      makeEntry({ id: "0002", lang: "ja" }),
+    ]);
+    assert.deepEqual(langs, ["ja", "zh"]);
   });
 });

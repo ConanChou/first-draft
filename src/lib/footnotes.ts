@@ -67,7 +67,7 @@ export function processFootnotes(md: string): {
 
   cleaned = cleaned.replace(refRegex, (_: string, label: string) => {
     const n = refOrder.indexOf(label) + 1;
-    return `<sup class="fn-ref" id="fnref-${n}"><a href="#fn-${n}">${n}</a></sup>`;
+    return `\u2060<sup class="fn-ref" id="fnref-${n}"><a href="#fn-${n}">${n}</a></sup>`;
   });
 
   cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();

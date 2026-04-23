@@ -312,7 +312,7 @@ fn serveRequest(request: *http.Server.Request, io: Io, config: Config, gpa: Allo
             break :blk 2;
         };
 
-        // Respond 202 immediately — publish (fetch+build+deploy) takes 20-60s,
+        // Respond 202 immediately — publish (link+build+deploy) takes 20-60s,
         // longer than iA Writer's request timeout. Client gets the ack right away;
         // we run publish after the response is flushed.
         var loc_buf: [256]u8 = undefined;

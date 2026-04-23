@@ -2,7 +2,7 @@
 /**
  * link
  *
- * Creates src/content as a symlink pointing to IA_WRITER_PATH.
+ * Creates src/content as a symlink pointing to CONTENT_PATH.
  * Run once after cloning / setting up .env.
  *
  * With the symlink in place:
@@ -13,26 +13,26 @@
 
 import { symlinkSync, existsSync, lstatSync, unlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { loadEnv, ROOT } from "./_lib.mjs";
+import { loadEnv, getContentPath, ROOT } from "./_lib.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
     "Usage: link\n\n" +
-    "  Creates src/content as a symlink pointing to IA_WRITER_PATH.\n" +
+    "  Creates src/content as a symlink pointing to CONTENT_PATH.\n" +
     "  Run once after cloning / setting up .env.\n"
   );
   process.exit(0);
 }
 
 const env = loadEnv();
-const IA_PATH = env.IA_WRITER_PATH;
+const contentPath = getContentPath(env);
 
-if (!IA_PATH) {
-  console.error("Error: IA_WRITER_PATH not set in .env");
+if (!contentPath) {
+  console.error("Error: CONTENT_PATH not set in .env");
   process.exit(1);
 }
-if (!existsSync(IA_PATH)) {
-  console.error(`Error: IA_WRITER_PATH not found: ${IA_PATH}`);
+if (!existsSync(contentPath)) {
+  console.error(`Error: CONTENT_PATH not found: ${contentPath}`);
   process.exit(1);
 }
 
@@ -46,10 +46,10 @@ if (stat) {
     unlinkSync(linkPath);         // replace stale / wrong-target symlink
   } else if (stat.isDirectory()) {
     console.error(`Error: ${linkPath} is a real directory, not a symlink.`);
-    console.error("Remove it manually if it was created by the old fetch script.");
+    console.error("Remove it manually before running link again.");
     process.exit(1);
   }
 }
 
-symlinkSync(IA_PATH, linkPath);
-console.log(`linked: src/content → ${IA_PATH}`);
+symlinkSync(contentPath, linkPath);
+console.log(`linked: src/content → ${contentPath}`);

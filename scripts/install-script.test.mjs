@@ -38,7 +38,7 @@ describe("install-script", () => {
       mkdirSync(bin);
       run(["install"], bin);
       // spot-check a few known installable scripts
-      for (const name of ["draft", "publish", "translate", "fetch", "build", "deploy", "micropub"]) {
+      for (const name of ["draft", "publish", "link", "build", "deploy", "micropub"]) {
         const link = join(bin, name);
         assert.ok(existsSync(link), `symlink missing: ${name}`);
         assert.ok(lstatSync(link).isSymbolicLink(), `not a symlink: ${name}`);
@@ -85,7 +85,7 @@ describe("install-script", () => {
       mkdirSync(bin);
       run(["install"], bin);
       run(["uninstall"], bin);
-      for (const name of ["draft", "publish", "translate"]) {
+      for (const name of ["draft", "publish", "link"]) {
         assert.ok(!existsSync(join(bin, name)), `symlink should be gone: ${name}`);
       }
     });

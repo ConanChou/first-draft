@@ -8,6 +8,12 @@ describe("renderMd", () => {
     assert.ok(html.includes("<strong>world</strong>"));
   });
 
+  it("uses english smart typography by default", async () => {
+    const html = await renderMd(`He said "hi" -- then left.`);
+    assert.ok(html.includes("\u201Chi\u201D"), html);
+    assert.ok(html.includes("\u2014"), html);
+  });
+
   it("strips leading h1 matching title pattern", async () => {
     const html = await renderMd("# Hello World\n\nBody paragraph.");
     assert.ok(!html.includes("<h1>"));

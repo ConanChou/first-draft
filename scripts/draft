@@ -1,44 +1,60 @@
 #!/usr/bin/env node
 /**
  * draft [--lang <code>] [folder]
+ * draft --translate <id> --lang <code> [--folder <path>]
  *
- * Allocates the next numeric ID, creates NNNN.md in the iA Writer library,
- * and opens it in iA Writer.
+ * Creates a new draft or a translation draft, then opens it in the configured editor.
  *
- * --lang   language code (default: zh); non-default langs add .lang suffix
- * folder   path relative to IA_WRITER_PATH (default: library root)
+ * New draft:
+ *   - allocates the next numeric ID
+ *   - creates NNNN[.lang].md in the content library
+ *
+ * Translation draft:
+ *   - reuses an existing ID
+ *   - creates NNNN[.lang].md for the target language
+ *
+ * --lang             language code (default: en for new drafts; required for translations)
+ * --translate <id>   create a translation draft for an existing piece
+ * --folder <path>    subdirectory relative to CONTENT_PATH
+ * folder             positional alias for --folder in new-draft mode
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { execFileSync } from "node:child_process";
-import { loadEnv, scanMaxId, buildDraftTemplate } from "./_lib.mjs";
+import { join, dirname } from "node:path";
+import {
+  loadEnv, getContentPath, openInEditor, scanMaxId, findById, buildDraftTemplate,
+} from "./_lib.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
-    "Usage: draft [--lang <code>] [folder]\n\n" +
-    "  --lang <code>  language code (default: zh); non-default langs add .lang suffix\n" +
-    "  folder         subdirectory relative to IA_WRITER_PATH\n"
+    "Usage: draft [--lang <code>] [folder]\n" +
+    "       draft --translate <id> --lang <code> [--folder <path>]\n\n" +
+    "  --lang <code>      language code (default: en for new drafts; required for translations)\n" +
+    "  --translate <id>   create a translation draft for an existing piece\n" +
+    "  --folder <path>    subdirectory relative to CONTENT_PATH\n" +
+    "  folder             positional alias for --folder in new-draft mode\n"
   );
   process.exit(0);
 }
 
 const env = loadEnv();
-const IA_PATH = "IA_WRITER_PATH" in process.env ? process.env.IA_WRITER_PATH : (env.IA_WRITER_PATH ?? "");
-const DEFAULT_LANG = env.DEFAULT_LANG ?? "zh";
+const contentPath = getContentPath(env);
+const DEFAULT_LANG = env.DEFAULT_LANG ?? "en";
 
-if (!IA_PATH) {
-  console.error("Error: IA_WRITER_PATH not set in .env");
+if (!contentPath) {
+  console.error("Error: CONTENT_PATH not set in .env");
   process.exit(1);
 }
-if (!existsSync(IA_PATH)) {
-  console.error(`Error: IA_WRITER_PATH not found: ${IA_PATH}`);
+if (!existsSync(contentPath)) {
+  console.error(`Error: CONTENT_PATH not found: ${contentPath}`);
   process.exit(1);
 }
 
 const args = process.argv.slice(2);
 let lang = null;
-const rest = [];
+let folder = null;
+let translateId = null;
+const positional = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--lang") {
     if (i + 1 >= args.length) {
@@ -46,22 +62,56 @@ for (let i = 0; i < args.length; i++) {
       process.exit(1);
     }
     lang = args[++i];
+  } else if (args[i] === "--folder") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --folder requires a value");
+      process.exit(1);
+    }
+    folder = args[++i];
+  } else if (args[i] === "--translate") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --translate requires a value");
+      process.exit(1);
+    }
+    translateId = args[++i];
   } else {
-    rest.push(args[i]);
+    positional.push(args[i]);
   }
 }
-const folder = rest[0] ?? "";
-const effectiveLang = lang ?? DEFAULT_LANG;
-const targetDir = folder ? join(IA_PATH, folder) : IA_PATH;
+
+const positionalFolder = positional[0] ?? "";
+let effectiveLang = lang ?? DEFAULT_LANG;
+let targetDir = folder ? join(contentPath, folder) : (positionalFolder ? join(contentPath, positionalFolder) : contentPath);
+let filename = "";
+
+if (translateId) {
+  if (!lang) {
+    console.error("Error: --translate requires --lang");
+    process.exit(1);
+  }
+
+  const existing = findById(contentPath, translateId);
+  if (existing.length === 0) {
+    console.error(`Error: no file with ID ${translateId} found`);
+    process.exit(1);
+  }
+
+  const padded = String(parseInt(translateId, 10)).padStart(4, "0");
+  const langSuffix = effectiveLang !== DEFAULT_LANG ? `.${effectiveLang}` : "";
+  targetDir = folder
+    ? join(contentPath, folder)
+    : (dirname(existing[0]));
+  filename = `${padded}${langSuffix}.md`;
+} else {
+  mkdirSync(targetDir, { recursive: true });
+  const maxId = scanMaxId(contentPath);
+  const nextId = String(maxId + 1).padStart(4, "0");
+  const langSuffix = effectiveLang !== DEFAULT_LANG ? `.${effectiveLang}` : "";
+  filename = `${nextId}${langSuffix}.md`;
+}
 
 mkdirSync(targetDir, { recursive: true });
-
-const maxId = scanMaxId(IA_PATH);
-const nextId = String(maxId + 1).padStart(4, "0");
-const langSuffix = effectiveLang !== DEFAULT_LANG ? `.${effectiveLang}` : "";
-const filename = `${nextId}${langSuffix}.md`;
 const filePath = join(targetDir, filename);
-
 if (existsSync(filePath)) {
   console.error(`Error: ${filePath} already exists`);
   process.exit(1);
@@ -70,9 +120,4 @@ if (existsSync(filePath)) {
 writeFileSync(filePath, buildDraftTemplate(effectiveLang));
 console.log(filePath);
 
-// Open in iA Writer (macOS only — no-op on other platforms)
-try {
-  execFileSync("open", ["-a", "iA Writer", filePath], { stdio: "ignore" });
-} catch {
-  // Not macOS or iA Writer not installed — not fatal
-}
+openInEditor(filePath, env);

@@ -8,7 +8,7 @@
  *   2. Extracts title from first # heading if missing from front matter
  *   3. Renames file: NNNN[.lang].md → NNNN-slug[.lang].md
  *   4. Updates front matter: draft:false, title, slug, date, lang
- *   5. Chains: fetch → build → deploy
+ *   5. Chains: link → build → deploy
  *
  * --lang          disambiguate when ID has multiple lang versions
  * --tz            override timezone for date stamp (IANA name or "local")
@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync, renameSync, statSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { execFileSync } from "node:child_process";
 import {
-  ROOT, loadEnv, parseFrontMatter, stringifyFrontMatter,
+  ROOT, loadEnv, getContentPath, parseFrontMatter, stringifyFrontMatter,
   slugify, formatDateISO, findById, findDrafts, findLatestDraft,
   parseFilename, firstHeading,
 } from "./_lib.mjs";
@@ -54,12 +54,12 @@ for (let i = 0; i < args.length; i++) {
 }
 
 const env = loadEnv();
-const IA_PATH        = env.IA_WRITER_PATH;
+const contentPath    = getContentPath(env);
 const HOME_TZ        = env.HOME_TZ        ?? "America/New_York";
-const DEFAULT_LANG   = env.DEFAULT_LANG   ?? "zh";
+const DEFAULT_LANG   = env.DEFAULT_LANG   ?? "en";
 
-if (!IA_PATH) {
-  console.error("Error: IA_WRITER_PATH not set in .env");
+if (!contentPath) {
+  console.error("Error: CONTENT_PATH not set in .env");
   process.exit(1);
 }
 
@@ -67,7 +67,7 @@ if (!IA_PATH) {
 let filePath = null;
 
 if (titleFlag) {
-  const matches = findDrafts(IA_PATH, titleFlag);
+  const matches = findDrafts(contentPath, titleFlag);
   if (matches.length === 0) {
     console.error(`Error: no draft with heading "${titleFlag}" found`);
     process.exit(1);
@@ -80,7 +80,7 @@ if (titleFlag) {
   filePath = matches[0];
 
 } else if (latestDraft) {
-  filePath = findLatestDraft(IA_PATH);
+  filePath = findLatestDraft(contentPath);
   if (!filePath) {
     console.error("Error: no drafts found");
     process.exit(1);
@@ -90,7 +90,7 @@ if (titleFlag) {
   if (target.includes("/") || target.endsWith(".md")) {
     filePath = target;
   } else {
-    const matches = findById(IA_PATH, target, lang);
+    const matches = findById(contentPath, target, lang);
     if (matches.length === 0) {
       console.error(`Error: no file with ID ${target}${lang ? ` lang=${lang}` : ""}`);
       process.exit(1);
@@ -164,6 +164,6 @@ function run(script) {
   execFileSync(join(ROOT, "scripts", script), [], { stdio: "inherit", cwd: ROOT });
 }
 
-run("fetch");
+run("link");
 run("build");
 run("deploy");
