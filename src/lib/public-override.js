@@ -4,6 +4,7 @@ import { join, normalize, sep } from "node:path";
 const MIME_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".gif", "image/gif"],
+  [".glb", "model/gltf-binary"],
   [".html", "text/html; charset=utf-8"],
   [".ico", "image/x-icon"],
   [".jpeg", "image/jpeg"],

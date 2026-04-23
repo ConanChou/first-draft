@@ -6,6 +6,7 @@ import PostFootnotes from "../components/PostFootnotes.astro";
 import { getStaticPaths as routesGetStaticPaths, type RouteEntry, type FolderRouteEntry } from "../lib/routes";
 import { getEntryById } from "../lib/content";
 import { getFontProfileForLang, getFontProfileForLangs } from "../lib/font-profile";
+import { containsModelViewer } from "../lib/render";
 import { fmtDate } from "../lib/utils";
 
 export async function getStaticPaths(): Promise<GetStaticPathsResult> {
@@ -36,6 +37,9 @@ const folderChildren = props.kind === "folder"
 const fontProfile = props.kind === "folder"
   ? getFontProfileForLangs([props.folder.lang, ...folderChildren.map((child) => child.lang)])
   : getFontProfileForLang(props.entry.lang);
+const loadModelViewer = props.kind === "folder"
+  ? Boolean(props.folder.introHtml && containsModelViewer(props.folder.introHtml))
+  : containsModelViewer(props.entry.bodyHtml);
 
 const siblingEntry = props.kind === "post" && props.entry.translations[0]
   ? getEntryById(props.entry.id, props.entry.translations[0]) ?? null
@@ -48,6 +52,7 @@ const siblingEntry = props.kind === "post" && props.entry.translations[0]
   canonicalUrl={canonicalUrl}
   description={pageDesc}
   fontProfile={fontProfile}
+  loadModelViewer={loadModelViewer}
 >
   {props.kind === "folder" ? (
     <div class="section-page">

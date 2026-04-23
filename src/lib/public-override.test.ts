@@ -70,6 +70,7 @@ describe("getContentType", () => {
   it("returns type for common public assets", () => {
     assert.equal(getContentType("logo.svg"), "image/svg+xml");
     assert.equal(getContentType("images/og.png"), "image/png");
+    assert.equal(getContentType("models/chair.glb"), "model/gltf-binary");
     assert.equal(getContentType("site.webmanifest"), "application/manifest+json; charset=utf-8");
   });
 });

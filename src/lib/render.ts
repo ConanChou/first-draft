@@ -47,3 +47,7 @@ export async function renderMd(
   }));
   return bodyHtml + buildFootnoteSection(renderedFootnotes);
 }
+
+export function containsModelViewer(html: string): boolean {
+  return /<model-viewer(?:\s|>)/i.test(html);
+}

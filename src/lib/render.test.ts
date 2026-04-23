@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { renderMd } from "./render.js";
+import { containsModelViewer, renderMd } from "./render.js";
 
 describe("renderMd", () => {
   it("renders basic markdown to HTML", async () => {
@@ -137,5 +137,15 @@ describe("renderMd", () => {
   it("rewrites hashtags in footnote content", async () => {
     const html = await renderMd(`Body[^1].\n\n[^1]: A #tag here.`);
     assert.ok(html.includes(`href="/tags/tag/"`), html);
+  });
+
+  it("preserves raw model-viewer HTML for embedded 3D models", async () => {
+    const html = await renderMd(`<model-viewer src="/models/chair.glb" camera-controls></model-viewer>`);
+    assert.ok(html.includes(`<model-viewer src="/models/chair.glb" camera-controls></model-viewer>`), html);
+  });
+
+  it("detects model-viewer tags in rendered HTML", () => {
+    assert.equal(containsModelViewer(`<p>Intro</p><model-viewer src="/models/chair.glb"></model-viewer>`), true);
+    assert.equal(containsModelViewer(`<p>Intro</p><div class="model-viewer-shell"></div>`), false);
   });
 });
