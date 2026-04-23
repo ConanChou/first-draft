@@ -11,12 +11,25 @@ fi
 
 cd "$(dirname "$0")/.."
 
+copy_public_override() {
+  src="$1"
+  dest="$2"
+
+  if [ -d "$src" ]; then
+    mkdir -p "$dest"
+    cp -R "$src"/. "$dest"/
+  fi
+}
+
 if [ -f .env ]; then
   # shellcheck disable=SC1091
   . ./.env
 fi
 
 pnpm build
+
+public_override_dir="${PUBLIC_OVERRIDE_DIR:-public-override}"
+copy_public_override "$public_override_dir" "dist"
 
 resolved_cname="$CNAME_DOMAIN"
 

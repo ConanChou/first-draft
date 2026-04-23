@@ -67,6 +67,7 @@ Optional but useful:
 - `DEPLOY_GIT_NAME` / `DEPLOY_GIT_EMAIL`: deploy commit identity
 - `MICROPUB_PORT` / `MICROPUB_TOKEN`: local Micropub server
 - `OPEN_EDITOR_COMMAND`: command prefix used by `draft` to auto-open created files
+- `PUBLIC_OVERRIDE_DIR`: local overlay for `public/`, used by `pnpm dev` and copied into `dist/` after build
 
 `dist/CNAME` derives from `SITE_URL` host by default. `CNAME_DOMAIN` still works as advanced override, but normal setups should not need it.
 
@@ -115,6 +116,15 @@ Build site:
 ```sh
 node scripts/build
 ```
+
+Private public-file override:
+
+- repo ships neutral `public/logo.svg` and `public/favicon.svg`
+- put real private site assets in `public-override/logo.svg` and `public-override/favicon.svg`
+- or point `PUBLIC_OVERRIDE_DIR` at another private directory
+- any matching file in override dir shadows same path from `public/`
+- `pnpm dev` serves override files live when present
+- `build` copies override files into `dist/` after Astro build
 
 Deploy `dist/` to output repo:
 

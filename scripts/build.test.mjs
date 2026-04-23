@@ -37,7 +37,9 @@ function runInTempRoot(envFile = "") {
     '#!/bin/sh\n' +
     'printf \'%s\\n\' "$*" >> "$PNPM_LOG"\n' +
     'mkdir -p dist\n' +
-    'printf \'<!doctype html>\\n\' > dist/index.html\n',
+    'printf \'<!doctype html>\\n\' > dist/index.html\n' +
+    'printf \'<svg id="default-logo"/>\\n\' > dist/logo.svg\n' +
+    'printf \'<svg id="default-favicon"/>\\n\' > dist/favicon.svg\n',
     { mode: 0o755 },
   );
 
@@ -74,6 +76,52 @@ describe("build --help", () => {
 });
 
 describe("build", () => {
+  it("copies files from default public-override when present", () => {
+    const r = runInTempRoot("");
+    mkdirSync(join(r.root, "public-override", "images"), { recursive: true });
+    writeFileSync(join(r.root, "public-override", "logo.svg"), '<svg id="override-logo"/>\n');
+    writeFileSync(join(r.root, "public-override", "images", "og.png"), "override-image\n");
+
+    const rerun = spawnSync("sh", [join(r.root, "scripts", "build")], {
+      cwd: r.root,
+      encoding: "utf-8",
+      timeout: 5000,
+      env: {
+        ...process.env,
+        PATH: `${join(r.root, "fake-bin")}:${process.env.PATH ?? ""}`,
+        PNPM_LOG: join(r.root, "pnpm.log"),
+      },
+    });
+
+    assert.equal(rerun.status, 0, rerun.stderr);
+    assert.match(readFileSync(join(r.root, "dist", "logo.svg"), "utf-8"), /override-logo/);
+    assert.equal(readFileSync(join(r.root, "dist", "images", "og.png"), "utf-8"), "override-image\n");
+    assert.match(readFileSync(join(r.root, "dist", "favicon.svg"), "utf-8"), /default-favicon/);
+  });
+
+  it("copies files from PUBLIC_OVERRIDE_DIR when set", () => {
+    const r = runInTempRoot('PUBLIC_OVERRIDE_DIR=".public"\n');
+    mkdirSync(join(r.root, ".public", "nested"), { recursive: true });
+    writeFileSync(join(r.root, ".public", "logo.svg"), '<svg id="override-logo"/>\n');
+    writeFileSync(join(r.root, ".public", "nested", "notes.txt"), "hello\n");
+
+    const rerun = spawnSync("sh", [join(r.root, "scripts", "build")], {
+      cwd: r.root,
+      encoding: "utf-8",
+      timeout: 5000,
+      env: {
+        ...process.env,
+        PATH: `${join(r.root, "fake-bin")}:${process.env.PATH ?? ""}`,
+        PNPM_LOG: join(r.root, "pnpm.log"),
+      },
+    });
+
+    assert.equal(rerun.status, 0, rerun.stderr);
+    assert.match(readFileSync(join(r.root, "dist", "logo.svg"), "utf-8"), /override-logo/);
+    assert.equal(readFileSync(join(r.root, "dist", "nested", "notes.txt"), "utf-8"), "hello\n");
+    assert.match(readFileSync(join(r.root, "dist", "favicon.svg"), "utf-8"), /default-favicon/);
+  });
+
   it("writes dist/CNAME from env when CNAME_DOMAIN is set", () => {
     const r = runInTempRoot('CNAME_DOMAIN="blog.example.com"\n');
     assert.equal(r.status, 0, r.stderr);

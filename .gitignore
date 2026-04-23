@@ -9,6 +9,7 @@ src/content
 
 # env
 .env
+public-override/
 
 # astro
 .astro/
